@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:gravity="end"
+    android:orientation="horizontal"
+    android:paddingStart="48dp"
+    android:paddingEnd="0dp">
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clipChildren="false">
+
+        <com.tulia.app.ui.widget.SentBubbleLayout
+            android:id="@+id/sent_bubble"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="@dimen/bubble_padding_h"
+            android:paddingTop="@dimen/bubble_padding_v"
+            android:paddingEnd="@dimen/bubble_padding_h"
+            android:paddingBottom="7dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/quote_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/bg_quote_sent"
+                    android:orientation="horizontal"
+                    android:paddingStart="11dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/quote_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:alpha="0.8"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textColor="@color/tulia_white"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/message_image"
+                    android:layout_width="220dp"
+                    android:layout_height="220dp"
+                    android:layout_marginBottom="4dp"
+                    android:contentDescription="@string/photo_message"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/message_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Tulia.Body"
+                    android:textColor="@color/tulia_white" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/message_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                        android:textColor="@color/tulia_white_70" />
+
+                    <ImageView
+                        android:id="@+id/message_ticks"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginStart="4dp"
+                        android:contentDescription="@string/ticks_sent"
+                        android:importantForAccessibility="yes"
+                        android:src="@drawable/ic_done_all"
+                        app:tint="@color/tulia_white" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.tulia.app.ui.widget.SentBubbleLayout>
+
+        <TextView
+            android:id="@+id/reaction_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="-18dp"
+            android:background="@drawable/bg_reaction"
+            android:elevation="2dp"
+            android:minHeight="24dp"
+            android:paddingStart="8dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp"
+            android:textColor="@color/tulia_ink"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>

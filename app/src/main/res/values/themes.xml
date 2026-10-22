@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Base.Theme.Tulia" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tulia_red</item>
+        <item name="colorOnPrimary">@color/tulia_on_red</item>
+        <item name="colorPrimaryContainer">@color/tulia_blush</item>
+        <item name="colorOnPrimaryContainer">@color/tulia_red_deep</item>
+        <item name="colorSecondary">@color/tulia_red</item>
+        <item name="colorOnSecondary">@color/tulia_on_red</item>
+        <item name="colorSecondaryContainer">@color/tulia_blush</item>
+        <item name="colorOnSecondaryContainer">@color/tulia_ink</item>
+        <item name="colorTertiary">@color/tulia_red</item>
+        <item name="colorOnTertiary">@color/tulia_on_red</item>
+        <item name="colorTertiaryContainer">@color/tulia_blush</item>
+        <item name="colorOnTertiaryContainer">@color/tulia_ink</item>
+
+        <item name="colorSurface">@color/tulia_surface</item>
+        <item name="colorOnSurface">@color/tulia_ink</item>
+        <item name="colorSurfaceVariant">@color/tulia_blush</item>
+        <item name="colorOnSurfaceVariant">@color/tulia_dust</item>
+        <item name="colorSurfaceContainer">@color/tulia_surface</item>
+        <item name="colorSurfaceContainerLow">@color/tulia_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/tulia_surface_high</item>
+        <item name="colorSurfaceContainerHighest">@color/tulia_surface_high</item>
+        <item name="colorOutline">@color/tulia_blush_line</item>
+        <item name="colorOutlineVariant">@color/tulia_blush_line</item>
+        <item name="colorOnBackground">@color/tulia_ink</item>
+        <item name="colorError">@color/tulia_error</item>
+        <item name="colorOnError">@color/tulia_white</item>
+
+        <item name="android:colorBackground">@color/tulia_bg</item>
+        <item name="android:windowBackground">@color/tulia_bg</item>
+        <item name="android:statusBarColor">@color/tulia_transparent</item>
+        <item name="android:navigationBarColor">@color/tulia_transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+
+        <item name="android:fontFamily">@font/figtree</item>
+        <item name="fontFamily">@font/figtree</item>
+
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.Tulia.Display</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Tulia.Display</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.Tulia.Display</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Tulia.Title</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Tulia.Title</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.Tulia.Title</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Tulia.Body</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Tulia.BodySmall</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Tulia.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Tulia.Label</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Tulia.Caption</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.Tulia.Caption</item>
+
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Tulia.Bubble</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Tulia.Pill</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.Tulia.Sheet</item>
+
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Tulia.Dialog</item>
+        <item name="bottomNavigationStyle">@style/Widget.Tulia.BottomNavigation</item>
+    </style>
+
+    <style name="Theme.Tulia" parent="Base.Theme.Tulia" />
+</resources>

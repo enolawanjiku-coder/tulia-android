@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tulia_red">#FF5A6B</color>
+    <color name="tulia_red_light">#FF5A6B</color>
+    <color name="tulia_red_deep">#8F0F1B</color>
+    <color name="tulia_blush">#2A1B1E</color>
+    <color name="tulia_blush_line">#3A262A</color>
+    <color name="tulia_bg">#140C0D</color>
+    <color name="tulia_surface">#1F1416</color>
+    <color name="tulia_surface_high">#2A1B1E</color>
+    <color name="tulia_ink">#FBEFF0</color>
+    <color name="tulia_dust">#B59DA1</color>
+    <color name="tulia_on_red">#2B1B1E</color>
+    <color name="tulia_white">#FFFFFF</color>
+    <color name="tulia_transparent">#00000000</color>
+
+    <color name="tulia_voice_start">#D62839</color>
+    <color name="tulia_voice_end">#8F0F1B</color>
+    <color name="tulia_button_start">#E5384B</color>
+    <color name="tulia_button_end">#C21F2F</color>
+    <color name="tulia_error">#FF8A96</color>
+    <color name="tulia_amber">#E0A93B</color>
+    <color name="tulia_scrim">#2B1B1E</color>
+    <color name="tulia_white_70">#B3FFFFFF</color>
+    <color name="tulia_white_60">#99FFFFFF</color>
+    <color name="tulia_ripple_surface">#662A1B1E</color>
+    <color name="tulia_ripple_red">#33FFFFFF</color>
+    <color name="tulia_online_ring">#1F1416</color>
+    <color name="tulia_fab_shadow">#40D62839</color>
+
+    <color name="ic_launcher_background">#D62839</color>
+</resources>

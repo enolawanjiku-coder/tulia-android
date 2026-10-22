@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "826504579793",
+    "project_id": "tulia-d7873",
+    "storage_bucket": "tulia-d7873.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:826504579793:android:9ef1e33f0730ae5a1fd3f0",
+        "android_client_info": {
+          "package_name": "com.tulia.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "826504579793-232255tlcmjkc5m09vero03pcaa4e3q4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tulia.app",
+            "certificate_hash": "cd843b2771462a6dfdf74bc896108b0477a5c5e0"
+          }
+        },
+        {
+          "client_id": "826504579793-m97i97t9b31r9qkoq22fmfbl7q05puik.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBchwD5YjqdnS7-jCjSGtFNkphrk-5kkQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "826504579793-m97i97t9b31r9qkoq22fmfbl7q05puik.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

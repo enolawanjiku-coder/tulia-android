@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_name">Messages</string>
+    <string name="notification_channel_description">Alerts for new messages</string>
+    <string name="notifications_on">On</string>
+    <string name="notifications_off">Off</string>
+    <string name="notifications_blocked_title">Notifications are off</string>
+    <string name="notifications_blocked_body">Turn on notifications for Tulia in Android settings to get message alerts.</string>
+    <string name="notifications_open_settings">Open settings</string>
+</resources>

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/authGateFragment">
+
+    <fragment
+        android:id="@+id/authGateFragment"
+        android:name="com.tulia.app.ui.auth.AuthGateFragment"
+        android:label="AuthGate" />
+
+    <fragment
+        android:id="@+id/welcomeFragment"
+        android:name="com.tulia.app.ui.auth.WelcomeFragment"
+        android:label="Welcome">
+        <action
+            android:id="@+id/action_welcome_to_login"
+            app:destination="@id/loginFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+        <action
+            android:id="@+id/action_welcome_to_signup"
+            app:destination="@id/signupFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.tulia.app.ui.auth.LoginFragment"
+        android:label="Sign in">
+        <action
+            android:id="@+id/action_login_to_signup"
+            app:destination="@id/signupFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/signupFragment"
+        android:name="com.tulia.app.ui.auth.SignupFragment"
+        android:label="Create account">
+        <action
+            android:id="@+id/action_signup_to_login"
+            app:destination="@id/loginFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/profileSetupFragment"
+        android:name="com.tulia.app.ui.auth.ProfileSetupFragment"
+        android:label="Your profile" />
+
+    <fragment
+        android:id="@+id/chatsFragment"
+        android:name="com.tulia.app.ui.main.ChatsFragment"
+        android:label="@string/tab_chats">
+        <action
+            android:id="@+id/action_chats_to_chat"
+            app:destination="@id/chatFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+        <action
+            android:id="@+id/action_chats_to_new_chat"
+            app:destination="@id/newChatFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/newChatFragment"
+        android:name="com.tulia.app.ui.contacts.NewChatFragment"
+        android:label="@string/new_chat_title">
+        <action
+            android:id="@+id/action_new_chat_to_chat"
+            app:destination="@id/chatFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/chatFragment"
+        android:name="com.tulia.app.ui.chat.ChatFragment"
+        android:label="Chat" />
+
+    <fragment
+        android:id="@+id/statusFragment"
+        android:name="com.tulia.app.ui.main.StatusFragment"
+        android:label="@string/tab_status" />
+
+    <fragment
+        android:id="@+id/callsFragment"
+        android:name="com.tulia.app.ui.main.CallsFragment"
+        android:label="@string/tab_calls" />
+
+    <fragment
+        android:id="@+id/profileEditFragment"
+        android:name="com.tulia.app.ui.settings.ProfileEditFragment"
+        android:label="@string/edit_profile" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.tulia.app.ui.main.SettingsFragment"
+        android:label="@string/tab_settings">
+        <action
+            android:id="@+id/action_settings_to_profileEdit"
+            app:destination="@id/profileEditFragment"
+            app:enterAnim="@anim/nav_enter"
+            app:exitAnim="@anim/nav_exit"
+            app:popEnterAnim="@anim/nav_pop_enter"
+            app:popExitAnim="@anim/nav_pop_exit" />
+        <action
+            android:id="@+id/action_settings_to_welcome"
+            app:destination="@id/welcomeFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <action
+        android:id="@+id/action_global_to_chats"
+        app:destination="@id/chatsFragment"
+        app:popUpTo="@id/nav_graph"
+        app:popUpToInclusive="true" />
+
+    <action
+        android:id="@+id/action_global_to_welcome"
+        app:destination="@id/welcomeFragment"
+        app:popUpTo="@id/nav_graph"
+        app:popUpToInclusive="true" />
+
+    <action
+        android:id="@+id/action_global_to_profile_setup"
+        app:destination="@id/profileSetupFragment"
+        app:popUpTo="@id/nav_graph"
+        app:popUpToInclusive="true" />
+
+    <action
+        android:id="@+id/action_authGate_to_welcome"
+        app:destination="@id/welcomeFragment"
+        app:popUpTo="@id/authGateFragment"
+        app:popUpToInclusive="true" />
+</navigation>

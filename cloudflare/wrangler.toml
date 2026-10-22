@@ -1,0 +1,11 @@
+name = "tulia-media-api"
+main = "worker.js"
+compatibility_date = "2026-10-21"
+workers_dev = true
+
+[vars]
+FIREBASE_PROJECT_ID = "tulia-d7873"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tulia-media"

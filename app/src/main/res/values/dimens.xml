@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="grid">4dp</dimen>
+    <dimen name="screen_padding">16dp</dimen>
+    <dimen name="message_gap_same">2dp</dimen>
+    <dimen name="message_gap_different">10dp</dimen>
+    <dimen name="bubble_corner">20dp</dimen>
+    <dimen name="bubble_tail">6dp</dimen>
+    <dimen name="bubble_padding_h">14dp</dimen>
+    <dimen name="bubble_padding_v">9dp</dimen>
+    <dimen name="avatar_list">52dp</dimen>
+    <dimen name="avatar_header">40dp</dimen>
+    <dimen name="avatar_group">44dp</dimen>
+    <dimen name="icon_size">24dp</dimen>
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="sheet_corner">28dp</dimen>
+    <dimen name="online_dot">14dp</dimen>
+    <dimen name="online_dot_inner">10dp</dimen>
+    <dimen name="date_chip_corner">50dp</dimen>
+    <dimen name="input_corner">24dp</dimen>
+</resources>

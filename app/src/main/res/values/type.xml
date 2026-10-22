@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="TextAppearance.Tulia.Display" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:fontFamily">@font/bricolage_grotesque</item>
+        <item name="fontFamily">@font/bricolage_grotesque</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:lineSpacingMultiplier">1.25</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">@color/tulia_ink</item>
+    </style>
+
+    <style name="TextAppearance.Tulia.Title" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">@font/bricolage_grotesque</item>
+        <item name="fontFamily">@font/bricolage_grotesque</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:lineSpacingMultiplier">1.29</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">@color/tulia_ink</item>
+    </style>
+
+    <style name="TextAppearance.Tulia.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/figtree</item>
+        <item name="fontFamily">@font/figtree</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.375</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">@color/tulia_ink</item>
+    </style>
+
+    <style name="TextAppearance.Tulia.BodySmall" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/figtree</item>
+        <item name="fontFamily">@font/figtree</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingMultiplier">1.36</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textColor">@color/tulia_dust</item>
+    </style>
+
+    <style name="TextAppearance.Tulia.Label" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/figtree</item>
+        <item name="fontFamily">@font/figtree</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:lineSpacingMultiplier">1.43</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.Tulia.Caption" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:fontFamily">@font/figtree</item>
+        <item name="fontFamily">@font/figtree</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:lineSpacingMultiplier">1.27</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+</resources>

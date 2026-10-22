@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ShapeAppearance.Tulia.Bubble" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/bubble_corner</item>
+    </style>
+
+    <style name="ShapeAppearance.Tulia.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="ShapeAppearance.Tulia.Sheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">@dimen/sheet_corner</item>
+        <item name="cornerSizeTopRight">@dimen/sheet_corner</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Tulia.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/sheet_corner</item>
+    </style>
+
+    <style name="ShapeAppearance.Tulia.Field" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <style name="Widget.Tulia.Button.Primary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/tulia_red</item>
+        <item name="android:textColor">@color/tulia_on_red</item>
+        <item name="iconTint">@color/tulia_on_red</item>
+        <item name="android:textAppearance">@style/TextAppearance.Tulia.Label</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">24dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="rippleColor">@color/tulia_ripple_red</item>
+    </style>
+
+    <style name="Widget.Tulia.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="backgroundTint">@color/tulia_surface</item>
+        <item name="android:textColor">@color/tulia_red</item>
+        <item name="android:textAppearance">@style/TextAppearance.Tulia.Label</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="strokeColor">@color/tulia_red</item>
+        <item name="strokeWidth">1.5dp</item>
+        <item name="cornerRadius">24dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="rippleColor">@color/tulia_ripple_surface</item>
+    </style>
+
+    <style name="Widget.Tulia.Button.Destructive" parent="Widget.Tulia.Button.Secondary">
+        <item name="android:textColor">@color/tulia_red_deep</item>
+        <item name="strokeColor">@color/tulia_red_deep</item>
+    </style>
+
+    <style name="Widget.Tulia.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/tulia_red</item>
+        <item name="android:textAppearance">@style/TextAppearance.Tulia.Label</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="rippleColor">@color/tulia_ripple_surface</item>
+    </style>
+
+    <style name="Widget.Tulia.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundMode">outline</item>
+        <item name="boxBackgroundColor">@color/tulia_surface</item>
+        <item name="boxStrokeColor">@color/input_stroke</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxCornerRadiusTopStart">16dp</item>
+        <item name="boxCornerRadiusTopEnd">16dp</item>
+        <item name="boxCornerRadiusBottomStart">16dp</item>
+        <item name="boxCornerRadiusBottomEnd">16dp</item>
+        <item name="hintTextColor">@color/tulia_dust</item>
+        <item name="android:textColorHint">@color/tulia_dust</item>
+        <item name="errorTextColor">@color/tulia_error</item>
+        <item name="errorIconTint">@color/tulia_error</item>
+    </style>
+
+    <style name="Widget.Tulia.Chip" parent="Widget.Material3.Chip.Assist">
+        <item name="chipBackgroundColor">@color/tulia_blush</item>
+        <item name="android:textColor">@color/tulia_ink</item>
+        <item name="android:textAppearance">@style/TextAppearance.Tulia.Caption</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipMinHeight">28dp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Tulia.Pill</item>
+        <item name="rippleColor">@color/tulia_ripple_surface</item>
+    </style>
+
+    <style name="Widget.Tulia.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:background">@color/tulia_surface</item>
+        <item name="itemIconTint">@color/nav_item_icon</item>
+        <item name="itemTextColor">@color/nav_item_text</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.Tulia.BottomNavigation.ActiveIndicator</item>
+        <item name="labelVisibilityMode">labeled</item>
+        <item name="elevation">0dp</item>
+        <item name="android:elevation">0dp</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.Tulia.Label</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.Tulia.Label</item>
+    </style>
+
+    <style name="Widget.Tulia.BottomNavigation.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/tulia_blush</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Tulia.Pill</item>
+    </style>
+
+    <style name="Widget.Tulia.Divider" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@color/tulia_blush_line</item>
+    </style>
+
+    <style name="ThemeOverlay.Tulia.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/tulia_surface</item>
+        <item name="colorOnSurface">@color/tulia_ink</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Tulia.Dialog</item>
+        <item name="android:backgroundTint">@color/tulia_surface</item>
+    </style>
+</resources>
