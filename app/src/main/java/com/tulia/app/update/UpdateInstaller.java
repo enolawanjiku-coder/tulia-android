@@ -51,7 +51,7 @@ public final class UpdateInstaller {
             try {
                 File folder = context.getExternalFilesDir(UPDATE_FOLDER);
                 if (folder == null) {
-                    folder = new File(context.getFilesDir(), UPDATE_FOLDER);
+                    folder = new File(context.getCacheDir(), UPDATE_FOLDER);
                 }
                 if (!folder.exists() && !folder.mkdirs()) {
                     throw new IOException("Could not create the update folder.");
