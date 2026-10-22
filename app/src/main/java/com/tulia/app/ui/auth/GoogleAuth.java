@@ -95,7 +95,6 @@ public final class GoogleAuth {
                             }
                             Log.w(TAG, "Google credential request failed: "
                                     + exception.getClass().getName()
-                                    + " / " + exception.getType()
                                     + " / " + exception.getMessage(), exception);
                             if (exception instanceof GetCredentialCancellationException) {
                                 callback.onCancelled();
