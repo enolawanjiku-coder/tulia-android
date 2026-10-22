@@ -75,11 +75,11 @@ jobs:
           VERSION_NAME=$(grep '^versionName=' version.properties | cut -d= -f2)
           TAG="v${VERSION_CODE}"
           ASSET="app/build/outputs/apk/release/app-release.apk"
-          cp "$ASSET" "tulia-${VERSION_NAME}-${VERSION_CODE}.apk"
+          cp "$ASSET" tulia.apk
           NOTES="Tulia ${VERSION_NAME} (build ${VERSION_CODE})"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "tulia-${VERSION_NAME}-${VERSION_CODE}.apk" --clobber
+            gh release upload "$TAG" tulia.apk --clobber
             gh release edit "$TAG" --title "$NOTES" --notes "$NOTES"
           else
-            gh release create "$TAG" "tulia-${VERSION_NAME}-${VERSION_CODE}.apk" --title "$NOTES" --notes "$NOTES"
+            gh release create "$TAG" tulia.apk --title "$NOTES" --notes "$NOTES"
           fi
