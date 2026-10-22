@@ -2,6 +2,7 @@ package com.tulia.app.update;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.View;
 import android.widget.Toast;
 
@@ -15,6 +16,9 @@ import com.tulia.app.R;
 import java.io.File;
 
 public final class UpdateCoordinator {
+
+    private static final String PREFS_NAME = "tulia_update_prefs";
+    private static final String PREF_LAST_CHECK = "last_check_at";
 
     private UpdateCoordinator() {
     }
@@ -57,6 +61,29 @@ public final class UpdateCoordinator {
                 finish(onFinished);
             }
         });
+    }
+
+    public static void checkThrottled(@NonNull Context context,
+                                      long intervalMillis,
+                                      boolean interactive,
+                                      @Nullable Runnable onFinished) {
+        if (!shouldCheck(context, intervalMillis)) {
+            finish(onFinished);
+            return;
+        }
+        check(context, interactive, onFinished);
+    }
+
+    private static boolean shouldCheck(@NonNull Context context, long intervalMillis) {
+        long now = System.currentTimeMillis();
+        SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME,
+                Context.MODE_PRIVATE);
+        long last = preferences.getLong(PREF_LAST_CHECK, 0L);
+        if (now - last < intervalMillis) {
+            return false;
+        }
+        preferences.edit().putLong(PREF_LAST_CHECK, now).apply();
+        return true;
     }
 
     private static void finish(@Nullable Runnable onFinished) {

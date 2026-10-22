@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final int REQUEST_POST_NOTIFICATIONS = 1001;
+    private static final long AUTO_UPDATE_CHECK_INTERVAL_MS = 6L * 60L * 60L * 1000L;
     private static final String STATE_PENDING_CHAT_ID = "pending_chat_id";
     private static final String STATE_PENDING_OTHER_UID = "pending_other_uid";
     private static final String STATE_PENDING_OTHER_NAME = "pending_other_name";
@@ -233,6 +234,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkForAppUpdate() {
-        UpdateCoordinator.check(this, false);
+        UpdateCoordinator.checkThrottled(this, AUTO_UPDATE_CHECK_INTERVAL_MS, false, null);
     }
 }
