@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "826504579793-232255tlcmjkc5m09vero03pcaa4e3q4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tulia.app",
+            "certificate_hash": "0228c07f988adbd18b93d4ab024e0dc6b1baa99b"
+          }
+        },
+        {
           "client_id": "826504579793-m97i97t9b31r9qkoq22fmfbl7q05puik.apps.googleusercontent.com",
           "client_type": 3
         }

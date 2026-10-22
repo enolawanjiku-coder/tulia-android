@@ -93,12 +93,15 @@ public final class GoogleAuth {
                             if (!fragment.isAdded()) {
                                 return;
                             }
+                            Log.w(TAG, "Google credential request failed: "
+                                    + exception.getClass().getName()
+                                    + " / " + exception.getType()
+                                    + " / " + exception.getMessage(), exception);
                             if (exception instanceof GetCredentialCancellationException) {
                                 callback.onCancelled();
                             } else if (exception instanceof NoCredentialException) {
                                 callback.onError(R.string.auth_error_no_google_account);
                             } else {
-                                Log.w(TAG, "Google credential request failed.", exception);
                                 callback.onError(R.string.auth_error_google);
                             }
                         }

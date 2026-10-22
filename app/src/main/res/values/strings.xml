@@ -25,8 +25,8 @@
     <string name="auth_error_missing">Fill in every field to continue.</string>
     <string name="auth_error_network">Check your connection and try again.</string>
     <string name="auth_error_google">Google sign-in failed. Try again.</string>
-    <string name="auth_error_no_google_account">No Google account found on this device. Add one in Android settings.</string>
     <string name="google_web_client_id" translatable="false">826504579793-m97i97t9b31r9qkoq22fmfbl7q05puik.apps.googleusercontent.com</string>
+    <string name="auth_error_no_google_account">Google sign-in is not available on this device. Make sure a Google account is signed in on the phone, or continue with email.</string>
 
     <string name="tab_chats">Chats</string>
     <string name="tab_status">Status</string>
