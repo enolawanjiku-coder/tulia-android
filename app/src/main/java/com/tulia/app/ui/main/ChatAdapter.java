@@ -25,6 +25,8 @@ public class ChatAdapter extends ListAdapter<Chat, ChatAdapter.ChatHolder> {
 
     public interface Listener {
         void onChatClicked(@NonNull Chat chat);
+
+        void onChatLongPressed(@NonNull Chat chat);
     }
 
     private static final DiffUtil.ItemCallback<Chat> DIFF_CALLBACK =
@@ -43,7 +45,10 @@ public class ChatAdapter extends ListAdapter<Chat, ChatAdapter.ChatHolder> {
                             && oldItem.unread.equals(newItem.unread)
                             && oldItem.memberNames.equals(newItem.memberNames)
                             && oldItem.memberPhotos.equals(newItem.memberPhotos)
-                            && oldItem.lastMessageType.equals(newItem.lastMessageType);
+                            && oldItem.lastMessageType.equals(newItem.lastMessageType)
+                            && oldItem.pinned == newItem.pinned
+                            && oldItem.muted == newItem.muted
+                            && oldItem.archived == newItem.archived;
                 }
             };
 
@@ -90,6 +95,10 @@ public class ChatAdapter extends ListAdapter<Chat, ChatAdapter.ChatHolder> {
             binding.name.setText(name);
             binding.time.setText(TimeFormat.chatTime(context, chat.lastActivityMillis()));
 
+            binding.pinIcon.setVisibility(chat.pinned ? View.VISIBLE : View.GONE);
+            binding.muteIcon.setVisibility(chat.muted ? View.VISIBLE : View.GONE);
+            binding.archiveIcon.setVisibility(chat.archived ? View.VISIBLE : View.GONE);
+
             String body;
             if (chat.hasImagePreview()) {
                 body = context.getString(R.string.photo_preview);
@@ -102,18 +111,23 @@ public class ChatAdapter extends ListAdapter<Chat, ChatAdapter.ChatHolder> {
             String preview = hasMessage && currentUid.equals(chat.lastMessageSenderId)
                     ? context.getString(R.string.you_prefix, body)
                     : body;
+            boolean emphasised = hasUnread && !chat.muted;
             binding.preview.setText(preview);
             binding.preview.setTextColor(ContextCompat.getColor(context,
-                    hasUnread ? R.color.tulia_ink : R.color.tulia_dust));
+                    emphasised ? R.color.tulia_ink : R.color.tulia_dust));
             binding.time.setTextColor(ContextCompat.getColor(context,
-                    hasUnread ? R.color.tulia_red : R.color.tulia_dust));
+                    emphasised ? R.color.tulia_red : R.color.tulia_dust));
 
-            binding.unread.setVisibility(hasUnread ? View.VISIBLE : View.GONE);
+            binding.unread.setVisibility(emphasised ? View.VISIBLE : View.GONE);
             binding.unread.setText(unread > 99
                     ? context.getString(R.string.unread_overflow)
                     : java.text.NumberFormat.getIntegerInstance().format(unread));
 
             binding.getRoot().setOnClickListener(v -> listener.onChatClicked(chat));
+            binding.getRoot().setOnLongClickListener(v -> {
+                listener.onChatLongPressed(chat);
+                return true;
+            });
         }
 
         private void bindPhoto(@Nullable String url) {

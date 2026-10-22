@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="typing">typing…</string>
+    <string name="chat_you">You</string>
+    <string name="chat_replying_to">Replying to %1$s</string>
+    <string name="chat_reply_cancel">Cancel reply</string>
+    <string name="chat_action_reply">Reply</string>
+    <string name="chat_action_react">React</string>
+    <string name="chat_action_edit">Edit</string>
+    <string name="chat_action_delete">Delete</string>
+    <string name="chat_react_with">React with %1$s</string>
+    <string name="chat_reaction_chip_description">Reaction %1$s, %2$d</string>
+    <string name="chat_reaction_failed">Could not save the reaction. Try again.</string>
+    <string name="chat_edited_label">edited</string>
+    <string name="chat_message_deleted">This message was deleted</string>
+    <string name="chat_edit_title">Edit message</string>
+    <string name="chat_edit_hint">Message</string>
+    <string name="chat_edit_save">Save</string>
+    <string name="chat_edit_failed">Could not edit the message. Try again.</string>
+    <string name="chat_delete_title">Delete message?</string>
+    <string name="chat_delete_body">This message will be removed for everyone in this chat.</string>
+    <string name="chat_delete_confirm">Delete</string>
+    <string name="chat_delete_failed">Could not delete the message. Try again.</string>
 </resources>

@@ -14,38 +14,113 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_dawn"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="20dp"
+            android:orientation="vertical"
             android:paddingTop="10dp"
-            android:paddingEnd="8dp"
             android:paddingBottom="10dp">
 
-            <TextView
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/app_name"
-                android:textAppearance="@style/TextAppearance.Tulia.Display"
-                android:textColor="@color/tulia_ink" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="20dp"
+                android:paddingEnd="8dp">
 
-            <ImageButton
-                android:id="@+id/search_button"
-                android:layout_width="@dimen/touch_target"
-                android:layout_height="@dimen/touch_target"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/search"
-                android:src="@drawable/ic_search"
-                app:tint="@color/tulia_ink" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/app_name"
+                    android:textAppearance="@style/TextAppearance.Tulia.Display"
+                    android:textColor="@color/tulia_ink" />
 
-            <ImageButton
-                android:id="@+id/menu_button"
-                android:layout_width="@dimen/touch_target"
-                android:layout_height="@dimen/touch_target"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/menu"
-                android:src="@drawable/ic_more_vert"
-                app:tint="@color/tulia_ink" />
+                <ImageButton
+                    android:id="@+id/search_button"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/search"
+                    android:src="@drawable/ic_search"
+                    app:tint="@color/tulia_ink" />
+
+                <ImageButton
+                    android:id="@+id/menu_button"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/menu"
+                    android:src="@drawable/ic_more_vert"
+                    app:tint="@color/tulia_ink" />
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingStart="20dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="12dp"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/filter_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:chipSpacingHorizontal="8dp"
+                    app:selectionRequired="true"
+                    app:singleLine="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/filter_all"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="@string/chats_filter_all"
+                        android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                        app:checkedIconVisible="false"
+                        app:chipMinHeight="30dp"
+                        app:chipStrokeColor="@color/tulia_blush_line"
+                        app:chipStrokeWidth="1dp" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/filter_unread"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/chats_filter_unread"
+                        android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                        app:checkedIconVisible="false"
+                        app:chipMinHeight="30dp"
+                        app:chipStrokeColor="@color/tulia_blush_line"
+                        app:chipStrokeWidth="1dp" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/filter_pinned"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/chats_filter_pinned"
+                        android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                        app:checkedIconVisible="false"
+                        app:chipMinHeight="30dp"
+                        app:chipStrokeColor="@color/tulia_blush_line"
+                        app:chipStrokeWidth="1dp" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/filter_archived"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/chats_filter_archived"
+                        android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                        app:checkedIconVisible="false"
+                        app:chipMinHeight="30dp"
+                        app:chipStrokeColor="@color/tulia_blush_line"
+                        app:chipStrokeWidth="1dp" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
         </LinearLayout>
 
         <View
@@ -84,6 +159,7 @@
                     app:tint="@color/tulia_red" />
 
                 <TextView
+                    android:id="@+id/empty_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
@@ -93,6 +169,7 @@
                     android:textColor="@color/tulia_ink" />
 
                 <TextView
+                    android:id="@+id/empty_body"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"

@@ -1,27 +1,44 @@
 package com.tulia.app.ui.chat;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -33,17 +50,23 @@ import com.tulia.app.data.model.Chat;
 import com.tulia.app.data.model.Message;
 import com.tulia.app.data.model.UserProfile;
 import com.tulia.app.databinding.FragmentChatBinding;
+import com.tulia.app.databinding.ItemReactionEmojiBinding;
 import com.tulia.app.util.ImageCompressor;
 import com.tulia.app.util.Initials;
 import com.tulia.app.util.TimeFormat;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ChatFragment extends Fragment {
+public class ChatFragment extends Fragment implements MessageAdapter.Listener {
 
     public static final String ARG_CHAT_ID = "chat_id";
     public static final String ARG_OTHER_UID = "other_uid";
@@ -51,9 +74,28 @@ public class ChatFragment extends Fragment {
 
     private static final String TAG = "ChatFragment";
     private static final int MESSAGE_LIMIT = 300;
+    private static final int MAX_REACTION_CHIPS = 3;
     private static final long TYPING_WRITE_INTERVAL_MS = 2000L;
     private static final long TYPING_IDLE_MS = 1500L;
     private static final long TYPING_WINDOW_MS = 5000L;
+    private static final int REPLY_PREVIEW_MAX_CHARS = 120;
+    private static final int REACTION_ROWS = 2;
+    private static final int REACTION_COLUMNS = 3;
+    private static final long REACTION_TTL_MS = 10000L;
+
+    private static final int ACTION_REPLY = 0;
+    private static final int ACTION_REACT = 1;
+    private static final int ACTION_EDIT = 2;
+    private static final int ACTION_DELETE = 3;
+
+    private static final String[] REACTION_EMOJIS = {
+            "\uD83D\uDC4D",
+            "\u2764\uFE0F",
+            "\uD83D\uDE02",
+            "\uD83D\uDE2E",
+            "\uD83D\uDE22",
+            "\uD83D\uDE4F"
+    };
 
     private final Handler typingHandler = new Handler(Looper.getMainLooper());
     private final Runnable typingIdleRunnable = this::clearTyping;
@@ -61,6 +103,11 @@ public class ChatFragment extends Fragment {
         typingRefreshScheduled = false;
         renderHeaderStatus();
     };
+    private final Handler reactionHandler = new Handler(Looper.getMainLooper());
+    private final Runnable reactionRefreshRunnable = () -> renderMessages(false);
+    private final Map<String, Map<String, String>> reactionCache = new HashMap<>();
+    private final Map<String, Long> reactionLoadedAt = new HashMap<>();
+    private final Set<String> loadingReactions = new HashSet<>();
 
     private FragmentChatBinding binding;
     private MessageAdapter adapter;
@@ -82,9 +129,14 @@ public class ChatFragment extends Fragment {
     private boolean viewDestroyed;
     private long lastTypingWriteAt;
     private String otherUsername = "";
+    private String otherName = "";
+    private String myName = "";
     private long lastMarkedReadAt;
     private ExecutorService imageExecutor;
     private Snackbar photoProgress;
+    private View replyBar;
+    private TextView replyBarLabel;
+    private Message pendingReply;
 
     private final ActivityResultLauncher<PickVisualMediaRequest> photoPicker =
             registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
@@ -106,10 +158,11 @@ public class ChatFragment extends Fragment {
         Bundle arguments = getArguments();
         chatId = arguments == null ? null : arguments.getString(ARG_CHAT_ID);
         otherUid = arguments == null ? null : arguments.getString(ARG_OTHER_UID);
-        String otherName = arguments == null ? null : arguments.getString(ARG_OTHER_NAME);
-        if (otherName == null || otherName.trim().isEmpty()) {
-            otherName = getString(R.string.guest_name);
+        String otherDisplayName = arguments == null ? null : arguments.getString(ARG_OTHER_NAME);
+        if (otherDisplayName == null || otherDisplayName.trim().isEmpty()) {
+            otherDisplayName = getString(R.string.guest_name);
         }
+        otherName = otherDisplayName;
 
         FirebaseUser user = currentUser();
         if (chatId == null || otherUid == null || user == null) {
@@ -122,17 +175,20 @@ public class ChatFragment extends Fragment {
             return;
         }
         uid = user.getUid();
+        myName = user.getDisplayName() == null ? "" : user.getDisplayName().trim();
 
-        binding.name.setText(otherName);
-        binding.avatar.setText(Initials.of(otherName));
+        binding.name.setText(otherDisplayName);
+        binding.avatar.setText(Initials.of(otherDisplayName));
         binding.username.setText("");
         binding.backButton.setOnClickListener(v ->
                 NavHostFragment.findNavController(this).navigateUp());
 
-        adapter = new MessageAdapter();
+        adapter = new MessageAdapter(this);
         layoutManager = new LinearLayoutManager(requireContext());
         binding.messageList.setLayoutManager(layoutManager);
         binding.messageList.setAdapter(adapter);
+
+        buildReplyBar();
 
         binding.sendButton.setOnClickListener(v -> sendMessage());
         binding.photoButton.setOnClickListener(v -> photoPicker.launch(
@@ -176,6 +232,7 @@ public class ChatFragment extends Fragment {
                     return;
                 }
                 binding.name.setText(profile.name);
+                otherName = profile.name;
                 binding.avatar.setText(Initials.of(profile.name));
                 otherUsername = profile.hasUsername()
                         ? getString(R.string.username_with_at, profile.username)
@@ -290,6 +347,7 @@ public class ChatFragment extends Fragment {
                         renderMessages(scroll);
                         firstMessages = false;
                         markReadIfNeeded();
+                        refreshVisibleReactions();
                     }
 
                     @Override
@@ -342,6 +400,16 @@ public class ChatFragment extends Fragment {
                     displayMillis(currentMessages.get(i + 1), millis));
             String time = TimeFormat.messageTime(millis);
 
+            String quoteName = null;
+            String quoteText = null;
+            if (message.hasReply() && message.replyTo != null) {
+                quoteName = message.replyTo.senderName;
+                quoteText = replyPreview(message.replyTo);
+            }
+            List<MessageItem.Reaction> reactions = reactionsFor(message.id);
+            boolean edited = message.isEdited();
+            boolean deleted = message.deleted;
+
             boolean hasImage = !message.imageUrl.isEmpty();
             if (sent) {
                 int tick = otherReadAt >= millis
@@ -349,17 +417,64 @@ public class ChatFragment extends Fragment {
                         : MessageItem.TICK_SENT;
                 items.add(hasImage
                         ? MessageItem.sentImage(message.id, message.imageUrl, time,
-                        lastInGroup, tick)
-                        : MessageItem.sent(message.id, message.text, time, lastInGroup, tick));
+                        lastInGroup, tick, quoteName, quoteText, edited, deleted,
+                        reactions)
+                        : MessageItem.sent(message.id, message.text, time, lastInGroup,
+                        tick, quoteName, quoteText, edited, deleted, reactions));
             } else {
                 items.add(hasImage
                         ? MessageItem.receivedImage(message.id, message.imageUrl, time,
-                        lastInGroup)
-                        : MessageItem.received(message.id, message.text, time, lastInGroup));
+                        lastInGroup, quoteName, quoteText, edited, deleted, reactions)
+                        : MessageItem.received(message.id, message.text, time, lastInGroup,
+                        quoteName, quoteText, edited, deleted, reactions));
             }
             previousMillis = millis;
         }
         return items;
+    }
+
+    @NonNull
+    private String replyPreview(@NonNull Message.ReplyTo reply) {
+        String text = reply.text.trim();
+        if (!text.isEmpty()) {
+            return text.length() > REPLY_PREVIEW_MAX_CHARS
+                    ? text.substring(0, REPLY_PREVIEW_MAX_CHARS) + "..."
+                    : text;
+        }
+        if (reply.hasImage()) {
+            return getString(R.string.photo_preview);
+        }
+        return "";
+    }
+
+    @NonNull
+    private List<MessageItem.Reaction> reactionsFor(@NonNull String messageId) {
+        Map<String, String> reactions = reactionCache.get(messageId);
+        if (reactions == null || reactions.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String type : reactions.values()) {
+            counts.merge(type, 1, Integer::sum);
+        }
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(counts.entrySet());
+        entries.sort((first, second) -> second.getValue() - first.getValue());
+
+        List<MessageItem.Reaction> result = new ArrayList<>();
+        for (int i = 0; i < entries.size() && i < MAX_REACTION_CHIPS; i++) {
+            Map.Entry<String, Integer> entry = entries.get(i);
+            String type = entry.getKey();
+            boolean mine = false;
+            for (Map.Entry<String, String> reaction : reactions.entrySet()) {
+                if (uid != null && uid.equals(reaction.getKey())
+                        && type.equals(reaction.getValue())) {
+                    mine = true;
+                    break;
+                }
+            }
+            result.add(new MessageItem.Reaction(type, entry.getValue(), mine));
+        }
+        return result;
     }
 
     private long displayMillis(@NonNull Message message, long fallback) {
@@ -492,7 +607,8 @@ public class ChatFragment extends Fragment {
 
         clearTyping();
         binding.inputMessage.setText("");
-        ChatRepository.sendText(chatId, uid, otherUid, text.trim())
+        ChatRepository.sendText(chatId, uid, otherUid, text.trim(), replyToFor())
+                .addOnSuccessListener(task -> clearReply())
                 .addOnFailureListener(exception -> {
                     if (binding == null) {
                         return;
@@ -507,10 +623,432 @@ public class ChatFragment extends Fragment {
                 });
     }
 
+    @Nullable
+    private Map<String, Object> replyToFor() {
+        Message reply = pendingReply;
+        if (reply == null) {
+            return null;
+        }
+        Map<String, Object> replyTo = new HashMap<>();
+        replyTo.put("messageId", reply.id);
+        replyTo.put("senderId", reply.senderId);
+        replyTo.put("senderName", displayNameFor(reply.senderId));
+        replyTo.put("text", reply.text);
+        replyTo.put("imageUrl", reply.imageUrl);
+        return replyTo;
+    }
+
     @NonNull
     private String textOf() {
-        android.text.Editable editable = binding.inputMessage.getText();
+        Editable editable = binding.inputMessage.getText();
         return editable == null ? "" : editable.toString();
+    }
+
+    private void buildReplyBar() {
+        if (binding == null || replyBar != null) {
+            return;
+        }
+        Context context = requireContext();
+        LinearLayout bar = new LinearLayout(context);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(12), dp(8), dp(8), dp(8));
+        Drawable quote = context.getDrawable(R.drawable.bg_quote_received);
+        bar.setBackground(new LayerDrawable(new Drawable[]{
+                new ColorDrawable(context.getColor(R.color.tulia_surface)),
+                quote
+        }));
+        bar.setVisibility(View.GONE);
+
+        TextView label = new TextView(context);
+        label.setTextAppearance(R.style.TextAppearance_Tulia_BodySmall);
+        label.setTextColor(context.getColor(R.color.tulia_ink));
+        label.setMaxLines(2);
+        label.setEllipsize(TextUtils.TruncateAt.END);
+
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(R.drawable.ic_reply);
+        ImageViewCompat.setImageTintList(icon, ColorStateList.valueOf(
+                context.getColor(R.color.tulia_red)));
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(18), dp(18));
+        iconParams.setMarginEnd(dp(8));
+        bar.addView(icon, iconParams);
+
+        bar.addView(label, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView cancel = new TextView(context);
+        cancel.setText("\u2715");
+        cancel.setTextSize(16f);
+        cancel.setTextColor(context.getColor(R.color.tulia_dust));
+        cancel.setGravity(Gravity.CENTER);
+        cancel.setPadding(dp(12), dp(4), dp(12), dp(4));
+        cancel.setContentDescription(getString(R.string.chat_reply_cancel));
+        cancel.setClickable(true);
+        cancel.setFocusable(true);
+        cancel.setOnClickListener(v -> clearReply());
+        bar.addView(cancel, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        replyBar = bar;
+        replyBarLabel = label;
+        attachReplyBar(bar);
+    }
+
+    private void attachReplyBar(@NonNull View bar) {
+        if (!(binding.getRoot() instanceof ViewGroup)) {
+            return;
+        }
+        ViewGroup root = (ViewGroup) binding.getRoot();
+        View inputRow = findInputRow(root);
+        if (inputRow == null) {
+            root.addView(bar, root.getChildCount());
+            return;
+        }
+        root.addView(bar, root.indexOfChild(inputRow));
+    }
+
+    @Nullable
+    private View findInputRow(@NonNull ViewGroup root) {
+        for (int i = 0; i < root.getChildCount(); i++) {
+            View child = root.getChildAt(i);
+            if (child instanceof ViewGroup
+                    && ((ViewGroup) child).findViewById(R.id.input_message)
+                    == binding.inputMessage) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    private void startReply(@NonNull Message message) {
+        if (binding == null) {
+            return;
+        }
+        pendingReply = message;
+        if (replyBarLabel != null) {
+            replyBarLabel.setText(getString(R.string.chat_replying_to,
+                    displayNameFor(message.senderId)));
+        }
+        if (replyBar != null) {
+            replyBar.setVisibility(View.VISIBLE);
+        }
+        binding.inputMessage.requestFocus();
+    }
+
+    private void clearReply() {
+        pendingReply = null;
+        if (replyBarLabel != null) {
+            replyBarLabel.setText("");
+        }
+        if (replyBar != null) {
+            replyBar.setVisibility(View.GONE);
+        }
+    }
+
+    @NonNull
+    private String displayNameFor(@NonNull String senderId) {
+        if (uid != null && uid.equals(senderId)) {
+            return myName.isEmpty() ? getString(R.string.chat_you) : myName;
+        }
+        if (chat != null) {
+            return chat.nameFor(senderId, otherName);
+        }
+        return otherName;
+    }
+
+    @Nullable
+    private Message findMessage(@NonNull String id) {
+        for (Message message : currentMessages) {
+            if (message.id.equals(id)) {
+                return message;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void onMessageLongPressed(@NonNull MessageItem item) {
+        showMessageActions(item);
+    }
+
+    @Override
+    public void onMessageVisible(@NonNull String messageId) {
+        loadReactionsFor(messageId, false);
+    }
+
+    @Override
+    public void onReactionToggled(@NonNull String messageId, @NonNull String type) {
+        toggleReaction(messageId, type);
+    }
+
+    private void showMessageActions(@NonNull MessageItem item) {
+        if (binding == null) {
+            return;
+        }
+        Message message = findMessage(item.id);
+        if (message == null || message.deleted) {
+            return;
+        }
+        Context context = requireContext();
+        List<String> labels = new ArrayList<>();
+        List<Integer> actions = new ArrayList<>();
+        labels.add(getString(R.string.chat_action_reply));
+        actions.add(ACTION_REPLY);
+        labels.add(getString(R.string.chat_action_react));
+        actions.add(ACTION_REACT);
+        if (item.type == MessageItem.TYPE_SENT) {
+            labels.add(getString(R.string.chat_action_edit));
+            actions.add(ACTION_EDIT);
+            labels.add(getString(R.string.chat_action_delete));
+            actions.add(ACTION_DELETE);
+        }
+
+        String[] items = labels.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(context)
+                .setItems(items, (dialog, which) -> {
+                    if (which < 0 || which >= actions.size()) {
+                        return;
+                    }
+                    int action = actions.get(which);
+                    if (action == ACTION_REPLY) {
+                        startReply(message);
+                    } else if (action == ACTION_REACT) {
+                        showReactionPicker(message);
+                    } else if (action == ACTION_EDIT) {
+                        showEditDialog(message);
+                    } else if (action == ACTION_DELETE) {
+                        showDeleteDialog(message);
+                    }
+                })
+                .show();
+    }
+
+    private void showReactionPicker(@NonNull Message message) {
+        if (binding == null) {
+            return;
+        }
+        Context context = requireContext();
+        LinearLayout grid = new LinearLayout(context);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setGravity(Gravity.CENTER);
+        LayoutInflater inflater = LayoutInflater.from(context);
+        List<TextView> emojiViews = new ArrayList<>();
+        for (int row = 0; row < REACTION_ROWS; row++) {
+            LinearLayout line = new LinearLayout(context);
+            line.setOrientation(LinearLayout.HORIZONTAL);
+            line.setGravity(Gravity.CENTER);
+            line.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+            for (int column = 0; column < REACTION_COLUMNS; column++) {
+                int index = row * REACTION_COLUMNS + column;
+                if (index >= REACTION_EMOJIS.length) {
+                    break;
+                }
+                String emoji = REACTION_EMOJIS[index];
+                ItemReactionEmojiBinding item =
+                        ItemReactionEmojiBinding.inflate(inflater, line, false);
+                item.reactionEmojiText.setText(emoji);
+                item.reactionEmojiText.setContentDescription(
+                        getString(R.string.chat_react_with, emoji));
+                item.reactionEmojiText.setTag(emoji);
+                emojiViews.add(item.reactionEmojiText);
+                line.addView(item.getRoot());
+            }
+            grid.addView(line);
+        }
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.chat_action_react)
+                .setView(grid)
+                .create();
+        dialog.show();
+        for (TextView emojiView : emojiViews) {
+            Object tag = emojiView.getTag();
+            if (!(tag instanceof String)) {
+                continue;
+            }
+            String emoji = (String) tag;
+            emojiView.setOnClickListener(v -> {
+                dialog.dismiss();
+                toggleReaction(message.id, emoji);
+            });
+        }
+    }
+
+    private void toggleReaction(@NonNull String messageId, @NonNull String type) {
+        if (chatId == null || uid == null) {
+            return;
+        }
+        Map<String, String> reactions = reactionCache.get(messageId);
+        String current = reactions == null ? null : reactions.get(uid);
+        writeReaction(messageId, type.equals(current) ? null : type);
+    }
+
+    private void writeReaction(@NonNull String messageId, @Nullable String type) {
+        if (chatId == null || uid == null) {
+            return;
+        }
+        Map<String, String> reactions = new HashMap<>();
+        Map<String, String> cached = reactionCache.get(messageId);
+        if (cached != null) {
+            reactions.putAll(cached);
+        }
+        if (type == null) {
+            reactions.remove(uid);
+        } else {
+            reactions.put(uid, type);
+        }
+        reactionCache.put(messageId, reactions);
+        renderMessages(false);
+
+        ChatRepository.setReaction(chatId, messageId, uid, type)
+                .addOnFailureListener(exception -> {
+                    Log.w(TAG, "Could not save the reaction.", exception);
+                    if (binding == null) {
+                        return;
+                    }
+                    Snackbar.make(binding.getRoot(), R.string.chat_reaction_failed,
+                            Snackbar.LENGTH_LONG).show();
+                    loadReactionsFor(messageId, true);
+                });
+    }
+
+    private void refreshVisibleReactions() {
+        if (adapter == null) {
+            return;
+        }
+        for (String messageId : adapter.visibleMessageIds()) {
+            loadReactionsFor(messageId, true);
+        }
+    }
+
+    private void loadReactionsFor(@NonNull String messageId, boolean force) {
+        if (binding == null || chatId == null) {
+            return;
+        }
+        if (!force) {
+            Long loadedAt = reactionLoadedAt.get(messageId);
+            if (loadedAt != null
+                    && System.currentTimeMillis() - loadedAt < REACTION_TTL_MS) {
+                return;
+            }
+        }
+        if (!loadingReactions.add(messageId)) {
+            return;
+        }
+        ChatRepository.loadReactions(chatId, messageId,
+                new ChatRepository.ReactionsCallback() {
+                    @Override
+                    public void onReactions(@NonNull Map<String, String> reactions) {
+                        loadingReactions.remove(messageId);
+                        if (binding == null) {
+                            return;
+                        }
+                        reactionCache.put(messageId, reactions);
+                        reactionLoadedAt.put(messageId, System.currentTimeMillis());
+                        scheduleReactionRefresh();
+                    }
+
+                    @Override
+                    public void onError(@NonNull Exception exception) {
+                        loadingReactions.remove(messageId);
+                        Log.w(TAG, "Could not load the reactions.", exception);
+                    }
+                });
+    }
+
+    private void scheduleReactionRefresh() {
+        reactionHandler.removeCallbacks(reactionRefreshRunnable);
+        reactionHandler.post(reactionRefreshRunnable);
+    }
+
+    private void showEditDialog(@NonNull Message message) {
+        if (binding == null) {
+            return;
+        }
+        Context context = requireContext();
+        TextInputLayout container = new TextInputLayout(context);
+        container.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
+        container.setBoxCornerRadii(16f, 16f, 16f, 16f);
+        container.setHint(getString(R.string.chat_edit_hint));
+
+        TextInputEditText input = new TextInputEditText(context);
+        input.setText(message.text);
+        input.setSelection(message.text.length());
+        container.addView(input);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.chat_edit_title)
+                .setView(container)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.chat_edit_save, (dialog, which) -> {
+                    Editable editable = input.getText();
+                    String text = editable == null ? "" : editable.toString().trim();
+                    if (text.isEmpty()) {
+                        return;
+                    }
+                    saveEditedText(message, text);
+                })
+                .show();
+    }
+
+    private void saveEditedText(@NonNull Message message, @NonNull String text) {
+        if (chatId == null) {
+            return;
+        }
+        ChatRepository.editMessage(chatId, message.id, text)
+                .addOnFailureListener(exception -> {
+                    Log.w(TAG, "Could not edit the message.", exception);
+                    if (binding == null) {
+                        return;
+                    }
+                    Snackbar.make(binding.getRoot(), R.string.chat_edit_failed,
+                            Snackbar.LENGTH_LONG).show();
+                });
+    }
+
+    private void showDeleteDialog(@NonNull Message message) {
+        if (binding == null) {
+            return;
+        }
+        Context context = requireContext();
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.chat_delete_title)
+                .setMessage(R.string.chat_delete_body)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.chat_delete_confirm, (shown, which) ->
+                        deleteMessage(message))
+                .create();
+        dialog.setOnShowListener(shown -> {
+            Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (button != null) {
+                button.setTextColor(context.getColor(R.color.tulia_red_deep));
+            }
+        });
+        dialog.show();
+    }
+
+    private void deleteMessage(@NonNull Message message) {
+        if (chatId == null) {
+            return;
+        }
+        ChatRepository.deleteMessage(chatId, message.id)
+                .addOnFailureListener(exception -> {
+                    Log.w(TAG, "Could not delete the message.", exception);
+                    if (binding == null) {
+                        return;
+                    }
+                    Snackbar.make(binding.getRoot(), R.string.chat_delete_failed,
+                            Snackbar.LENGTH_LONG).show();
+                });
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private boolean isNearBottom() {
@@ -561,6 +1099,10 @@ public class ChatFragment extends Fragment {
         typingHandler.removeCallbacks(typingIdleRunnable);
         typingHandler.removeCallbacks(typingRefreshRunnable);
         typingRefreshScheduled = false;
+        reactionHandler.removeCallbacks(reactionRefreshRunnable);
+        reactionCache.clear();
+        reactionLoadedAt.clear();
+        loadingReactions.clear();
         viewDestroyed = true;
         if (chatRegistration != null) {
             chatRegistration.remove();
@@ -583,5 +1125,8 @@ public class ChatFragment extends Fragment {
         }
         super.onDestroyView();
         binding = null;
+        replyBar = null;
+        replyBarLabel = null;
+        pendingReply = null;
     }
 }

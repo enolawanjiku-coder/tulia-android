@@ -62,6 +62,12 @@ public final class ChatRepository {
         void onError(@NonNull Exception exception);
     }
 
+    public interface ReactionsCallback {
+        void onReactions(@NonNull Map<String, String> reactions);
+
+        void onError(@NonNull Exception exception);
+    }
+
     private ChatRepository() {
     }
 
@@ -187,6 +193,14 @@ public final class ChatRepository {
                                       @NonNull String senderId,
                                       @NonNull String recipientId,
                                       @NonNull String text) {
+        return sendText(chatId, senderId, recipientId, text, null);
+    }
+
+    public static Task<Void> sendText(@NonNull String chatId,
+                                      @NonNull String senderId,
+                                      @NonNull String recipientId,
+                                      @NonNull String text,
+                                      @Nullable Map<String, Object> replyTo) {
         FirebaseFirestore database = FirebaseFirestore.getInstance();
         DocumentReference chatRef = database.collection("chats").document(chatId);
         DocumentReference messageRef = chatRef.collection("messages").document();
@@ -195,6 +209,9 @@ public final class ChatRepository {
         message.put("senderId", senderId);
         message.put("text", text);
         message.put("createdAt", Timestamp.now());
+        if (replyTo != null && !replyTo.isEmpty()) {
+            message.put("replyTo", replyTo);
+        }
 
         Map<String, Object> chat = new HashMap<>();
         chat.put("lastMessage", text);
@@ -207,6 +224,78 @@ public final class ChatRepository {
         batch.set(messageRef, message);
         batch.update(chatRef, chat);
         return batch.commit();
+    }
+
+    public static void loadReactions(@NonNull String chatId,
+                                      @NonNull String messageId,
+                                      @NonNull ReactionsCallback callback) {
+        FirebaseFirestore.getInstance()
+                .collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(messageId)
+                .collection("reactions")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    Map<String, String> reactions = new HashMap<>();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        String type = document.getString("type");
+                        if (type != null && !type.trim().isEmpty()) {
+                            reactions.put(document.getId(), type);
+                        }
+                    }
+                    callback.onReactions(reactions);
+                })
+                .addOnFailureListener(callback::onError);
+    }
+
+    public static Task<Void> setReaction(@NonNull String chatId,
+                                         @NonNull String messageId,
+                                         @NonNull String uid,
+                                         @Nullable String type) {
+        DocumentReference reactionRef = FirebaseFirestore.getInstance()
+                .collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(messageId)
+                .collection("reactions")
+                .document(uid);
+        if (type == null) {
+            return reactionRef.delete();
+        }
+        Map<String, Object> reaction = new HashMap<>();
+        reaction.put("type", type);
+        reaction.put("createdAt", Timestamp.now());
+        return reactionRef.set(reaction);
+    }
+
+    public static Task<Void> editMessage(@NonNull String chatId,
+                                         @NonNull String messageId,
+                                         @NonNull String text) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", text);
+        updates.put("editedAt", Timestamp.now());
+        return FirebaseFirestore.getInstance()
+                .collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(messageId)
+                .update(updates);
+    }
+
+    public static Task<Void> deleteMessage(@NonNull String chatId,
+                                            @NonNull String messageId) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", "");
+        updates.put("imageUrl", "");
+        updates.put("deleted", true);
+        updates.put("deletedAt", Timestamp.now());
+        return FirebaseFirestore.getInstance()
+                .collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(messageId)
+                .update(updates);
     }
 
     public static Task<Void> setTyping(@NonNull String chatId,

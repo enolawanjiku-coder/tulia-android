@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chats_filter_all">All</string>
+    <string name="chats_filter_unread">Unread</string>
+    <string name="chats_filter_pinned">Pinned</string>
+    <string name="chats_filter_archived">Archived</string>
+
+    <string name="chats_action_pin">Pin</string>
+    <string name="chats_action_unpin">Unpin</string>
+    <string name="chats_action_mute">Mute</string>
+    <string name="chats_action_unmute">Unmute</string>
+    <string name="chats_action_archive">Archive</string>
+    <string name="chats_action_unarchive">Unarchive</string>
+    <string name="chats_action_mark_read">Mark as read</string>
+    <string name="chats_action_mark_unread">Mark as unread</string>
+
+    <string name="chats_action_done">Done.</string>
+    <string name="chats_action_failed">Could not update this chat. Try again.</string>
+
+    <string name="chats_pinned_description">Pinned</string>
+    <string name="chats_muted_description">Muted</string>
+    <string name="chats_archived_description">Archived</string>
+
+    <string name="chats_empty_filtered_title">Nothing here yet.</string>
+    <string name="chats_empty_filtered_body">Chats you organise will show up here.</string>
+</resources>

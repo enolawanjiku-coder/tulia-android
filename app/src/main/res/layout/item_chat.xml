@@ -61,6 +61,26 @@
                 android:textAppearance="@style/TextAppearance.Tulia.Title"
                 android:textColor="@color/tulia_ink" />
 
+            <ImageView
+                android:id="@+id/pin_icon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="6dp"
+                android:contentDescription="@string/chats_pinned_description"
+                android:src="@drawable/ic_pin_chat"
+                android:visibility="gone"
+                app:tint="@color/tulia_red" />
+
+            <ImageView
+                android:id="@+id/archive_icon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="6dp"
+                android:contentDescription="@string/chats_archived_description"
+                android:src="@drawable/ic_archive_chat"
+                android:visibility="gone"
+                app:tint="@color/tulia_dust" />
+
             <TextView
                 android:id="@+id/time"
                 android:layout_width="wrap_content"
@@ -86,6 +106,16 @@
                 android:maxLines="1"
                 android:textAppearance="@style/TextAppearance.Tulia.BodySmall"
                 android:textColor="@color/tulia_dust" />
+
+            <ImageView
+                android:id="@+id/mute_icon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="8dp"
+                android:contentDescription="@string/chats_muted_description"
+                android:src="@drawable/ic_mute_chat"
+                android:visibility="gone"
+                app:tint="@color/tulia_dust" />
 
             <TextView
                 android:id="@+id/unread"

@@ -38,6 +38,9 @@ public final class Chat {
     public final Map<String, Timestamp> lastRead;
     @NonNull
     public final Map<String, Long> typing;
+    public final boolean pinned;
+    public final boolean muted;
+    public final boolean archived;
 
     private Chat(@NonNull String id,
                  @NonNull List<String> members,
@@ -51,6 +54,26 @@ public final class Chat {
                  @NonNull Map<String, Long> unread,
                  @NonNull Map<String, Timestamp> lastRead,
                  @NonNull Map<String, Long> typing) {
+        this(id, members, memberNames, memberPhotos, lastMessage, lastMessageType,
+                lastMessageSenderId, lastMessageAt, createdAt, unread, lastRead, typing,
+                false, false, false);
+    }
+
+    private Chat(@NonNull String id,
+                 @NonNull List<String> members,
+                 @NonNull Map<String, String> memberNames,
+                 @NonNull Map<String, String> memberPhotos,
+                 @NonNull String lastMessage,
+                 @NonNull String lastMessageType,
+                 @Nullable String lastMessageSenderId,
+                 @Nullable Timestamp lastMessageAt,
+                 @Nullable Timestamp createdAt,
+                 @NonNull Map<String, Long> unread,
+                 @NonNull Map<String, Timestamp> lastRead,
+                 @NonNull Map<String, Long> typing,
+                 boolean pinned,
+                 boolean muted,
+                 boolean archived) {
         this.id = id;
         this.members = members;
         this.memberNames = memberNames;
@@ -63,6 +86,9 @@ public final class Chat {
         this.unread = unread;
         this.lastRead = lastRead;
         this.typing = typing;
+        this.pinned = pinned;
+        this.muted = muted;
+        this.archived = archived;
     }
 
     @NonNull
@@ -151,6 +177,26 @@ public final class Chat {
                 Collections.unmodifiableMap(unread),
                 Collections.unmodifiableMap(lastRead),
                 Collections.unmodifiableMap(typing));
+    }
+
+    @NonNull
+    public Chat withFlags(boolean pinned, boolean muted, boolean archived) {
+        if (this.pinned == pinned && this.muted == muted && this.archived == archived) {
+            return this;
+        }
+        return new Chat(id, members, memberNames, memberPhotos, lastMessage,
+                lastMessageType, lastMessageSenderId, lastMessageAt, createdAt, unread,
+                lastRead, typing, pinned, muted, archived);
+    }
+
+    @NonNull
+    public Chat withPrefs(@NonNull Map<String, Boolean> pinnedChats,
+                          @NonNull Map<String, Boolean> mutedChats,
+                          @NonNull Map<String, Boolean> archivedChats) {
+        return withFlags(
+                Boolean.TRUE.equals(pinnedChats.get(id)),
+                Boolean.TRUE.equals(mutedChats.get(id)),
+                Boolean.TRUE.equals(archivedChats.get(id)));
     }
 
     @Nullable
