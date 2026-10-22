@@ -19,8 +19,6 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.firebase.appdistribution.AppDistributionRelease;
-import com.google.firebase.appdistribution.FirebaseAppDistribution;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -31,6 +29,7 @@ import com.tulia.app.data.UserRepository;
 import com.tulia.app.data.model.UserProfile;
 import com.tulia.app.databinding.FragmentSettingsBinding;
 import com.tulia.app.notifications.NotificationHelper;
+import com.tulia.app.update.UpdateCoordinator;
 import com.tulia.app.util.Initials;
 
 public class SettingsFragment extends Fragment {
@@ -197,65 +196,12 @@ public class SettingsFragment extends Fragment {
     }
 
     private void checkForUpdates() {
-        if (!BuildConfig.DEBUG) {
-            Snackbar.make(binding.getRoot(), R.string.update_check_failed,
-                    Snackbar.LENGTH_SHORT).show();
-            return;
-        }
         binding.updateValue.setText(R.string.updates_checking);
-        try {
-            FirebaseAppDistribution.getInstance()
-                    .checkForNewRelease()
-                    .addOnSuccessListener(release -> {
-                        if (binding == null) {
-                            return;
-                        }
-                        binding.updateValue.setText(BuildConfig.VERSION_NAME);
-                        if (release == null) {
-                            Snackbar.make(binding.getRoot(), R.string.updates_up_to_date,
-                                    Snackbar.LENGTH_SHORT).show();
-                        } else {
-                            showUpdateDialog(release);
-                        }
-                    })
-                    .addOnFailureListener(this::showUpdateError);
-        } catch (IllegalStateException exception) {
-            showUpdateError(exception);
-        }
-    }
-
-    private void showUpdateDialog(@NonNull AppDistributionRelease release) {
-        String version = release.getDisplayVersion();
-        if (version == null || version.trim().isEmpty()) {
-            version = String.valueOf(release.getVersionCode());
-        }
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.update_available)
-                .setMessage(getString(R.string.update_message, version))
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.update, (dialog, which) -> startUpdate())
-                .show();
-    }
-
-    private void startUpdate() {
-        Snackbar.make(binding.getRoot(), R.string.update_starting, Snackbar.LENGTH_SHORT).show();
-        try {
-            FirebaseAppDistribution.getInstance()
-                    .updateIfNewReleaseAvailable()
-                    .addOnFailureListener(this::showUpdateError);
-        } catch (IllegalStateException exception) {
-            showUpdateError(exception);
-        }
-    }
-
-    private void showUpdateError(@NonNull Exception exception) {
-        Log.w(TAG, "Could not check for updates.", exception);
-        if (binding == null) {
-            return;
-        }
-        binding.updateValue.setText(BuildConfig.VERSION_NAME);
-        Snackbar.make(binding.getRoot(), R.string.update_check_failed,
-                Snackbar.LENGTH_LONG).show();
+        UpdateCoordinator.check(requireContext(), true, () -> {
+            if (binding != null) {
+                binding.updateValue.setText(BuildConfig.VERSION_NAME);
+            }
+        });
     }
 
     private void updateAppearanceValue() {

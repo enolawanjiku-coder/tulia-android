@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
-    id 'com.google.firebase.appdistribution'
 }
 
 def localProps = new Properties()
@@ -12,12 +11,21 @@ if (localPropsFile.exists()) {
     localPropsFile.withInputStream { localProps.load(it) }
 }
 def mediaWorkerUrl = localProps.getProperty('tulia.mediaWorkerUrl', '')
-def appDistributionCredentials = localProps.getProperty('tulia.appDistributionCredentials', '')
-def appDistributionGroups = localProps.getProperty('tulia.appDistributionGroups', 'testers')
 def versionProps = new Properties()
 rootProject.file('version.properties').withInputStream { versionProps.load(it) }
 def appVersionCode = versionProps.getProperty('versionCode', '1').toInteger()
 def appVersionName = versionProps.getProperty('versionName', '0.1.0')
+
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def hasReleaseSigning = keystorePropsFile.exists()
+        && keystoreProps.getProperty('storeFile')
+        && keystoreProps.getProperty('storePassword')
+        && keystoreProps.getProperty('keyAlias')
+        && keystoreProps.getProperty('keyPassword')
 
 android {
     namespace 'com.tulia.app'
@@ -32,20 +40,31 @@ android {
         versionName appVersionName
 
         buildConfigField "String", "MEDIA_WORKER_URL", "\"${mediaWorkerUrl}\""
+        buildConfigField "String", "UPDATE_REPO_OWNER", "\"enolawanjiku-coder\""
+        buildConfigField "String", "UPDATE_REPO_NAME", "\"tulia-android\""
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile rootProject.file(keystoreProps.getProperty('storeFile'))
+                storePassword keystoreProps.getProperty('storePassword')
+                keyAlias keystoreProps.getProperty('keyAlias')
+                keyPassword keystoreProps.getProperty('keyPassword')
+            }
+        }
     }
 
     buildTypes {
         debug {
-            firebaseAppDistribution {
-                artifactType = "APK"
-                groups = appDistributionGroups
-                releaseNotes = "Tulia " + appVersionName + " (build " + appVersionCode + ")"
-                if (appDistributionCredentials) {
-                    serviceCredentialsFile = appDistributionCredentials
-                }
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
             }
         }
         release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -66,8 +85,6 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:35.0.2')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
-    implementation 'com.google.firebase:firebase-appdistribution-api:16.0.0-beta20'
-    debugImplementation 'com.google.firebase:firebase-appdistribution:16.0.0-beta20'
 
     implementation 'androidx.credentials:credentials:1.6.0'
     implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'

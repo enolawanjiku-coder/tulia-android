@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -35,13 +35,51 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and lint
-        run: ./gradlew assembleDebug lintDebug --console=plain --stacktrace
+      - name: Restore release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TULIA_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.TULIA_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.TULIA_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.TULIA_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "TULIA_KEYSTORE_BASE64 is not set."
+            exit 1
+          fi
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/tulia-release.jks
+          {
+            echo "storeFile=keystore/tulia-release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
 
-      - name: Upload debug APK
+      - name: Build and lint
+        run: ./gradlew assembleDebug assembleRelease lintDebug --console=plain --stacktrace
+
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: tulia-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish GitHub release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION_CODE=$(grep '^versionCode=' version.properties | cut -d= -f2)
+          VERSION_NAME=$(grep '^versionName=' version.properties | cut -d= -f2)
+          TAG="v${VERSION_CODE}"
+          ASSET="app/build/outputs/apk/release/app-release.apk"
+          cp "$ASSET" "tulia-${VERSION_NAME}-${VERSION_CODE}.apk"
+          NOTES="Tulia ${VERSION_NAME} (build ${VERSION_CODE})"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "tulia-${VERSION_NAME}-${VERSION_CODE}.apk" --clobber
+            gh release edit "$TAG" --title "$NOTES" --notes "$NOTES"
+          else
+            gh release create "$TAG" "tulia-${VERSION_NAME}-${VERSION_CODE}.apk" --title "$NOTES" --notes "$NOTES"
+          fi

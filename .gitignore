@@ -17,6 +17,7 @@ serviceAccount.json
 *.jks
 *.keystore
 keystore.properties
+/keystore/
 *.apk
 *.aab
 /things/

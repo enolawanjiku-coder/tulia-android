@@ -129,5 +129,15 @@
     <string name="update_message">Version %1$s is available. Update now?</string>
     <string name="update">Update</string>
     <string name="update_starting">Starting update…</string>
-    <string name="update_check_failed">Could not check for updates. Install this build from App Distribution first.</string>
+    <string name="update_check_failed">Could not check for updates.</string>
+    <string name="update_github_checking">Checking GitHub…</string>
+    <string name="update_github_latest">You’re on the latest GitHub build.</string>
+    <string name="update_github_available">GitHub build %1$s is available. Update now?</string>
+    <string name="update_github_failed">Could not check GitHub releases.</string>
+    <string name="update_download_failed">Could not download the update.</string>
+    <string name="update_installing">Installing update…</string>
+    <string name="update_install_failed">Could not start the installer.</string>
+    <string name="update_install_permission">Allow Tulia to install updates in Android settings.</string>
+    <string name="update_github_none">No GitHub release found.</string>
+    <string name="update_downloading">Downloading update…</string>
 </resources>

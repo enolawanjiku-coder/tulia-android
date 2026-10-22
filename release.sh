@@ -3,13 +3,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-CREDS=$(grep -E '^tulia\.appDistributionCredentials=.+' local.properties 2>/dev/null | cut -d= -f2- || true)
-if [ -z "$CREDS" ]; then
-  echo "Missing tulia.appDistributionCredentials in local.properties."
-  echo "Create a Firebase App Distribution service account JSON and add its path."
-  exit 1
-fi
-
 python3 - <<'PY'
 from pathlib import Path
 
@@ -34,4 +27,13 @@ print(f"Releasing Tulia {version_name} (build {version_code})")
 PY
 
 export JAVA_HOME=${JAVA_HOME:-$HOME/.local/opt/jdk-17}
-./gradlew assembleDebug appDistributionUploadDebug --console=plain
+./gradlew assembleDebug assembleRelease --console=plain
+
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git add version.properties
+  git commit -m "Release $(grep '^versionName=' version.properties | cut -d= -f2) (build $(grep '^versionCode=' version.properties | cut -d= -f2))"
+  git push origin HEAD
+  echo "Pushed. GitHub Actions will publish the release."
+else
+  echo "Not a git repository. The APK is at app/build/outputs/apk/release/app-release.apk"
+fi

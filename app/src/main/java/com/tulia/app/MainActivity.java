@@ -21,11 +21,11 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
-import com.google.firebase.appdistribution.FirebaseAppDistribution;
 import com.google.firebase.auth.FirebaseAuth;
 import com.tulia.app.databinding.ActivityMainBinding;
 import com.tulia.app.notifications.MessageNotifier;
 import com.tulia.app.notifications.NotificationHelper;
+import com.tulia.app.update.UpdateCoordinator;
 import com.tulia.app.ui.chat.ChatFragment;
 
 public class MainActivity extends AppCompatActivity {
@@ -233,16 +233,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkForAppUpdate() {
-        if (!BuildConfig.DEBUG) {
-            return;
-        }
-        try {
-            FirebaseAppDistribution.getInstance()
-                    .updateIfNewReleaseAvailable()
-                    .addOnFailureListener(exception ->
-                            Log.w(TAG, "App update check failed.", exception));
-        } catch (IllegalStateException exception) {
-            Log.w(TAG, "App Distribution is not available.", exception);
-        }
+        UpdateCoordinator.check(this, false);
     }
 }
