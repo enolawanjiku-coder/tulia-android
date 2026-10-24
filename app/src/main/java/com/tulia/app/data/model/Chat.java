@@ -225,6 +225,10 @@ public final class Chat {
         return "image".equals(lastMessageType);
     }
 
+    public boolean hasAudioPreview() {
+        return "audio".equals(lastMessageType);
+    }
+
     public int unreadFor(@NonNull String uid) {
         Long count = unread.get(uid);
         return count == null ? 0 : (int) Math.min(count, Integer.MAX_VALUE);

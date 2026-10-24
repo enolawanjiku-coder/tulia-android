@@ -102,12 +102,15 @@ public class ChatAdapter extends ListAdapter<Chat, ChatAdapter.ChatHolder> {
             String body;
             if (chat.hasImagePreview()) {
                 body = context.getString(R.string.photo_preview);
+            } else if (chat.hasAudioPreview()) {
+                body = context.getString(R.string.voice_message);
             } else if (chat.lastMessage.isEmpty()) {
                 body = context.getString(R.string.chat_no_messages);
             } else {
                 body = chat.lastMessage;
             }
-            boolean hasMessage = chat.hasImagePreview() || !chat.lastMessage.isEmpty();
+            boolean hasMessage = chat.hasImagePreview() || chat.hasAudioPreview()
+                    || !chat.lastMessage.isEmpty();
             String preview = hasMessage && currentUid.equals(chat.lastMessageSenderId)
                     ? context.getString(R.string.you_prefix, body)
                     : body;

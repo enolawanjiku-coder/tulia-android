@@ -23,8 +23,11 @@ import com.tulia.app.data.model.UserProfile;
 import com.tulia.app.databinding.FragmentNewChatBinding;
 import com.tulia.app.ui.chat.ChatFragment;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class NewChatFragment extends Fragment {
 
@@ -38,6 +41,7 @@ public class NewChatFragment extends Fragment {
     private String latestQuery = "";
     private String uid;
     private boolean openingChat;
+    private Set<String> blockedUids = Collections.emptySet();
 
     public NewChatFragment() {
         super(R.layout.fragment_new_chat);
@@ -54,6 +58,17 @@ public class NewChatFragment extends Fragment {
             return;
         }
         uid = user.getUid();
+        UserRepository.getBlockedUids(uid, new UserRepository.BlockedCallback() {
+            @Override
+            public void onResult(@NonNull List<String> blocked) {
+                blockedUids = new HashSet<>(blocked);
+            }
+
+            @Override
+            public void onError(@NonNull Exception exception) {
+                Log.w(TAG, "Could not load the block list.", exception);
+            }
+        });
 
         adapter = new UserSearchAdapter(this::openChatWith);
         binding.resultsList.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -104,8 +119,14 @@ public class NewChatFragment extends Fragment {
                     return;
                 }
                 binding.progress.setVisibility(View.GONE);
-                adapter.submitList(users);
-                if (users.isEmpty()) {
+                List<UserProfile> visible = new ArrayList<>();
+                for (UserProfile user : users) {
+                    if (!blockedUids.contains(user.uid)) {
+                        visible.add(user);
+                    }
+                }
+                adapter.submitList(visible);
+                if (visible.isEmpty()) {
                     showEmpty(R.string.user_search_empty);
                 } else {
                     binding.emptyText.setVisibility(View.GONE);

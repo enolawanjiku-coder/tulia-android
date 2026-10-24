@@ -5,6 +5,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // In a direct chat, the member who is not the sender.
+    function recipientUid() {
+      return get(/databases/$(database)/documents/chats/$(chatId)).data.members[0] == request.auth.uid
+             ? get(/databases/$(database)/documents/chats/$(chatId)).data.members[1]
+             : get(/databases/$(database)/documents/chats/$(chatId)).data.members[0];
+    }
+
+    function isBlockedByRecipient() {
+      return get(/databases/$(database)/documents/chats/$(chatId)).data.members.size() == 2
+             && request.auth.uid in get(/databases/$(database)/documents/users/$(recipientUid()))
+                 .data.get('blocked', []);
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
       allow create, update: if signedIn() && request.auth.uid == userId;
@@ -18,6 +31,32 @@ service cloud.firestore {
                     && !exists(/databases/$(database)/documents/usernames/$(username));
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
       allow update: if false;
+    }
+
+    // Device push tokens: only the owner can write their doc, nobody can read
+    // it from a client. The media worker reads it with a service account.
+    match /pushTokens/{userId} {
+      allow read: if false;
+      allow create, update: if signedIn()
+                    && request.auth.uid == userId
+                    && request.resource.data.tokens is list
+                    && request.resource.data.tokens.size() >= 1
+                    && request.resource.data.tokens.size() <= 20;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    // Abuse reports. Writable by the reporter only, never readable from a
+    // client; review them in the Firebase console.
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if signedIn()
+                    && request.resource.data.reporterId == request.auth.uid
+                    && request.resource.data.reportedUid is string
+                    && request.resource.data.reportedUid.size() >= 1
+                    && request.resource.data.reportedUid.size() <= 128
+                    && request.resource.data.reason is string
+                    && request.resource.data.reason.size() <= 200;
+      allow update, delete: if false;
     }
 
     match /chats/{chatId} {
@@ -43,7 +82,8 @@ service cloud.firestore {
                           || (request.resource.data.imageUrl is string
                               && request.resource.data.imageUrl.size() <= 2048))
                       && request.auth.uid in
-                         get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+                         get(/databases/$(database)/documents/chats/$(chatId)).data.members
+                      && !isBlockedByRecipient();
         allow update: if signedIn()
                       && resource.data.senderId == request.auth.uid
                       && request.resource.data.senderId == request.auth.uid

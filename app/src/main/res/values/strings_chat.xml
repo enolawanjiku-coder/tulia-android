@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="typing">typing…</string>
+    <string name="status_online">online</string>
+    <string name="status_last_seen">last seen %1$s</string>
     <string name="chat_you">You</string>
     <string name="chat_replying_to">Replying to %1$s</string>
     <string name="chat_reply_cancel">Cancel reply</string>
@@ -21,4 +23,33 @@
     <string name="chat_delete_body">This message will be removed for everyone in this chat.</string>
     <string name="chat_delete_confirm">Delete</string>
     <string name="chat_delete_failed">Could not delete the message. Try again.</string>
+    <string name="chat_options">Chat options</string>
+    <string name="block_user">Block %1$s</string>
+    <string name="unblock_user">Unblock %1$s</string>
+    <string name="report_user">Report %1$s</string>
+    <string name="block_confirm_title">Block %1$s?</string>
+    <string name="block_confirm_body">%1$s won\u2019t be able to send you messages or notifications, and won\u2019t appear in search. You can unblock them anytime.</string>
+    <string name="block_action">Block</string>
+    <string name="unblock_action">Unblock</string>
+    <string name="block_done_toast">Blocked %1$s</string>
+    <string name="unblock_done_toast">Unblocked %1$s</string>
+    <string name="report_title">Report %1$s</string>
+    <string name="report_reason_spam">Spam</string>
+    <string name="report_reason_harassment">Harassment or bullying</string>
+    <string name="report_reason_fake">Pretending to be someone else</string>
+    <string name="report_reason_other">Something else</string>
+    <string name="report_sent_toast">Report sent. Thank you.</string>
+    <string name="block_report_failed">Couldn\u2019t finish. Check your connection and try again.</string>
+    <string name="voice_message">Voice note</string>
+    <string name="voice_note_play">Play voice note</string>
+    <string name="voice_note_pause">Pause voice note</string>
+    <string name="voice_sending">Sending voice note…</string>
+    <string name="voice_send_error">Couldn\u2019t send the voice note. Try again.</string>
+    <string name="send_voice">Record voice note</string>
+    <string name="record_hint">Release to send · slide left to cancel</string>
+    <string name="record_release_cancel">Release to cancel</string>
+    <string name="record_too_short">Hold the mic to record a voice note.</string>
+    <string name="record_permission_denied">Allow microphone access to record voice notes.</string>
+    <string name="record_failed">Couldn\u2019t start recording. Try again.</string>
+    <string name="cancel_record">Cancel recording</string>
 </resources>

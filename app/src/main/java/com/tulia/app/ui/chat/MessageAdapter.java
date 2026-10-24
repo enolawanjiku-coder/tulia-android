@@ -1,6 +1,8 @@
 package com.tulia.app.ui.chat;
 
 import android.graphics.Typeface;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,9 +26,11 @@ import com.tulia.app.databinding.ItemMessageReceivedBinding;
 import com.tulia.app.databinding.ItemMessageSentBinding;
 import com.tulia.app.databinding.ItemReactionChipBinding;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class MessageAdapter extends ListAdapter<MessageItem, RecyclerView.ViewHolder> {
@@ -62,6 +66,11 @@ public class MessageAdapter extends ListAdapter<MessageItem, RecyclerView.ViewHo
     @Nullable
     private final Listener listener;
     private final Set<String> visibleIds = new LinkedHashSet<>();
+
+    @Nullable
+    private MediaPlayer audioPlayer;
+    @Nullable
+    private String playingAudioId;
 
     public MessageAdapter(@Nullable Listener listener) {
         super(DIFF_CALLBACK);
@@ -200,6 +209,99 @@ public class MessageAdapter extends ListAdapter<MessageItem, RecyclerView.ViewHo
                 .into(imageView);
     }
 
+    private void bindAudio(View row, ImageView play, TextView duration,
+                           MessageItem message) {
+        boolean hasAudio = !message.deleted
+                && message.audioUrl != null && !message.audioUrl.isEmpty();
+        row.setVisibility(hasAudio ? View.VISIBLE : View.GONE);
+        if (!hasAudio) {
+            return;
+        }
+        duration.setText(formatDuration(message.durationMillis));
+        refreshAudioIcon(play, message.id);
+        play.setOnClickListener(v -> toggleAudioPlayback(message.id, message.audioUrl));
+    }
+
+    private void refreshAudioIcon(ImageView play, String messageId) {
+        boolean playing = messageId.equals(playingAudioId) && audioPlayer != null;
+        play.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        play.setContentDescription(play.getContext().getString(
+                playing ? R.string.voice_note_pause : R.string.voice_note_play));
+    }
+
+    private void toggleAudioPlayback(@NonNull String id, @NonNull String url) {
+        if (id.equals(playingAudioId)) {
+            stopAudioPlayback();
+            return;
+        }
+        stopAudioPlayback();
+        playingAudioId = id;
+        MediaPlayer player = new MediaPlayer();
+        audioPlayer = player;
+        player.setAudioAttributes(new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build());
+        try {
+            player.setDataSource(url);
+        } catch (IOException exception) {
+            stopAudioPlayback();
+            return;
+        }
+        player.setOnPreparedListener(mp -> {
+            if (mp == audioPlayer) {
+                mp.start();
+            }
+        });
+        player.setOnCompletionListener(mp -> {
+            if (mp == audioPlayer) {
+                stopAudioPlayback();
+            }
+        });
+        player.setOnErrorListener((mp, what, extra) -> {
+            if (mp == audioPlayer) {
+                stopAudioPlayback();
+            }
+            return true;
+        });
+        player.prepareAsync();
+        notifyAudioItemChanged(id);
+    }
+
+    public void stopAudioPlayback() {
+        String previous = playingAudioId;
+        if (audioPlayer != null) {
+            try {
+                audioPlayer.stop();
+            } catch (IllegalStateException ignored) {
+                // Never prepared; stopping is a no-op.
+            }
+            audioPlayer.release();
+            audioPlayer = null;
+        }
+        playingAudioId = null;
+        if (previous != null) {
+            notifyAudioItemChanged(previous);
+        }
+    }
+
+    private void notifyAudioItemChanged(@NonNull String messageId) {
+        for (int i = 0; i < getItemCount(); i++) {
+            MessageItem item = getItem(i);
+            if (item != null && item.id.equals(messageId)) {
+                notifyItemChanged(i);
+                return;
+            }
+        }
+    }
+
+    @NonNull
+    private static String formatDuration(long millis) {
+        long seconds = Math.max(0L, Math.round(millis / 1000.0));
+        return String.format(Locale.getDefault(), "%d:%02d",
+                seconds / 60, seconds % 60);
+    }
+
     private void bindReactions(LinearLayout container, MessageItem message) {
         container.removeAllViews();
         if (message.reactions.isEmpty()) {
@@ -276,6 +378,7 @@ public class MessageAdapter extends ListAdapter<MessageItem, RecyclerView.ViewHo
                     ? View.GONE : View.VISIBLE);
             binding.messageText.setAlpha(deleted ? 0.75f : 1f);
             bindImage(itemView, binding.messageImage, message);
+            bindAudio(binding.audioRow, binding.audioPlay, binding.audioDuration, message);
             binding.messageTime.setText(message.time);
             binding.editedLabel.setVisibility(message.edited ? View.VISIBLE : View.GONE);
             bindQuote(message);
@@ -353,6 +456,7 @@ public class MessageAdapter extends ListAdapter<MessageItem, RecyclerView.ViewHo
                     ? View.GONE : View.VISIBLE);
             binding.messageText.setAlpha(deleted ? 0.75f : 1f);
             bindImage(itemView, binding.messageImage, message);
+            bindAudio(binding.audioRow, binding.audioPlay, binding.audioDuration, message);
             binding.messageTime.setText(message.time);
             binding.editedLabel.setVisibility(message.edited ? View.VISIBLE : View.GONE);
             bindQuote(message);

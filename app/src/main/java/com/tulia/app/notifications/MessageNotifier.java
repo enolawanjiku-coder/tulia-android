@@ -70,6 +70,15 @@ public final class MessageNotifier {
         activeChatId = chatId;
     }
 
+    /**
+     * True while the in-process chat listener is running and able to post
+     * local notifications itself. TuliaMessagingService uses this to skip
+     * FCM-driven notifications and avoid duplicates.
+     */
+    public boolean isListening() {
+        return uid != null && chatsRegistration != null;
+    }
+
     public void setAppForeground(boolean foreground) {
         this.foreground = foreground;
     }
@@ -168,9 +177,14 @@ public final class MessageNotifier {
         }
         String otherName = otherUid == null ? senderName : chat.nameFor(otherUid, senderName);
 
-        String preview = chat.hasImagePreview()
-                ? appContext.getString(R.string.photo_message)
-                : chat.lastMessage;
+        String preview;
+        if (chat.hasImagePreview()) {
+            preview = appContext.getString(R.string.photo_message);
+        } else if (chat.hasAudioPreview()) {
+            preview = appContext.getString(R.string.voice_message);
+        } else {
+            preview = chat.lastMessage;
+        }
         if (preview == null || preview.trim().isEmpty()) {
             preview = appContext.getString(R.string.app_name);
         }

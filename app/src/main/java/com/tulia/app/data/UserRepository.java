@@ -3,12 +3,15 @@ package com.tulia.app.data;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.android.gms.tasks.Task;
 import com.tulia.app.data.model.UserProfile;
 
 import java.util.ArrayList;
@@ -46,6 +49,18 @@ public final class UserRepository {
         void onError(@NonNull Exception exception);
     }
 
+    public interface BlockedCallback {
+        void onResult(@NonNull List<String> blockedUids);
+
+        void onError(@NonNull Exception exception);
+    }
+
+    public interface SimpleCallback {
+        void onDone();
+
+        void onError(@NonNull Exception exception);
+    }
+
     private UserRepository() {
     }
 
@@ -56,6 +71,61 @@ public final class UserRepository {
                 .get()
                 .addOnSuccessListener(document -> callback.onResult(
                         document.exists() ? UserProfile.from(document) : null))
+                .addOnFailureListener(callback::onError);
+    }
+
+    public static void getBlockedUids(@NonNull String uid,
+                                      @NonNull BlockedCallback callback) {
+        FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener(document -> {
+                    List<String> blocked = new ArrayList<>();
+                    Object value = document.get("blocked");
+                    if (value instanceof List) {
+                        for (Object item : (List<?>) value) {
+                            if (item instanceof String && !((String) item).isEmpty()) {
+                                blocked.add((String) item);
+                            }
+                        }
+                    }
+                    callback.onResult(blocked);
+                })
+                .addOnFailureListener(callback::onError);
+    }
+
+    @NonNull
+    public static Task<Void> setBlocked(@NonNull String uid,
+                                        @NonNull String targetUid,
+                                        boolean blocked) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("blocked", blocked
+                ? FieldValue.arrayUnion(targetUid)
+                : FieldValue.arrayRemove(targetUid));
+        return FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .update(updates);
+    }
+
+    public static void reportUser(@NonNull String reporterUid,
+                                  @NonNull String reportedUid,
+                                  @NonNull String reason,
+                                  @Nullable String chatId,
+                                  @NonNull SimpleCallback callback) {
+        Map<String, Object> report = new HashMap<>();
+        report.put("reporterId", reporterUid);
+        report.put("reportedUid", reportedUid);
+        report.put("reason", reason);
+        if (chatId != null && !chatId.trim().isEmpty()) {
+            report.put("chatId", chatId);
+        }
+        report.put("createdAt", Timestamp.now());
+        FirebaseFirestore.getInstance()
+                .collection("reports")
+                .add(report)
+                .addOnSuccessListener(reference -> callback.onDone())
                 .addOnFailureListener(callback::onError);
     }
 

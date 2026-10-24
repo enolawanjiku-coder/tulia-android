@@ -36,6 +36,9 @@ public final class MessageItem {
     public final List<Reaction> reactions;
     @Nullable
     public final String imageUrl;
+    @Nullable
+    public final String audioUrl;
+    public final long durationMillis;
 
     private MessageItem(int type,
                           String id,
@@ -49,6 +52,24 @@ public final class MessageItem {
                           boolean deleted,
                           @NonNull List<Reaction> reactions,
                           @Nullable String imageUrl) {
+        this(type, id, text, time, lastInGroup, tick, quoteName, quoteText,
+                edited, deleted, reactions, imageUrl, null, 0L);
+    }
+
+    private MessageItem(int type,
+                          String id,
+                          String text,
+                          String time,
+                          boolean lastInGroup,
+                          int tick,
+                          @Nullable String quoteName,
+                          @Nullable String quoteText,
+                          boolean edited,
+                          boolean deleted,
+                          @NonNull List<Reaction> reactions,
+                          @Nullable String imageUrl,
+                          @Nullable String audioUrl,
+                          long durationMillis) {
         this.type = type;
         this.id = id;
         this.text = text;
@@ -61,6 +82,8 @@ public final class MessageItem {
         this.deleted = deleted;
         this.reactions = reactions;
         this.imageUrl = imageUrl;
+        this.audioUrl = audioUrl;
+        this.durationMillis = durationMillis;
     }
 
     public static MessageItem date(String id, String text) {
@@ -113,6 +136,28 @@ public final class MessageItem {
                 quoteName, quoteText, edited, deleted, reactions, imageUrl);
     }
 
+    public static MessageItem sentAudio(String id, String audioUrl, long durationMillis,
+                                          String time, boolean lastInGroup, int tick,
+                                          @Nullable String quoteName,
+                                          @Nullable String quoteText,
+                                          boolean edited, boolean deleted,
+                                          @NonNull List<Reaction> reactions) {
+        return new MessageItem(TYPE_SENT, id, "", time, lastInGroup, tick,
+                quoteName, quoteText, edited, deleted, reactions, null,
+                audioUrl, durationMillis);
+    }
+
+    public static MessageItem receivedAudio(String id, String audioUrl, long durationMillis,
+                                              String time, boolean lastInGroup,
+                                              @Nullable String quoteName,
+                                              @Nullable String quoteText,
+                                              boolean edited, boolean deleted,
+                                              @NonNull List<Reaction> reactions) {
+        return new MessageItem(TYPE_RECEIVED, id, "", time, lastInGroup, TICK_NONE,
+                quoteName, quoteText, edited, deleted, reactions, null,
+                audioUrl, durationMillis);
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -133,13 +178,15 @@ public final class MessageItem {
                 && Objects.equals(quoteName, message.quoteName)
                 && Objects.equals(quoteText, message.quoteText)
                 && Objects.equals(reactions, message.reactions)
-                && Objects.equals(imageUrl, message.imageUrl);
+                && Objects.equals(imageUrl, message.imageUrl)
+                && Objects.equals(audioUrl, message.audioUrl)
+                && durationMillis == message.durationMillis;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(type, id, text, time, lastInGroup, tick, quoteName,
-                quoteText, edited, deleted, reactions, imageUrl);
+                quoteText, edited, deleted, reactions, imageUrl, audioUrl, durationMillis);
     }
 
     public static final class Reaction {

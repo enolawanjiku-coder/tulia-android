@@ -34,7 +34,6 @@ public final class MediaRepository {
         void onError(@NonNull Exception exception);
     }
 
-    private static final MediaType JPEG = MediaType.parse("image/jpeg");
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
@@ -57,10 +56,27 @@ public final class MediaRepository {
         upload("chat", chatId, bytes, callback);
     }
 
+    public static void uploadChatFile(@NonNull String chatId,
+                                      @NonNull byte[] bytes,
+                                      @NonNull String mime,
+                                      @NonNull String fileName,
+                                      @NonNull UploadCallback callback) {
+        uploadFile("chat", chatId, bytes, mime, fileName, callback);
+    }
+
     private static void upload(@NonNull String kind,
                                @Nullable String chatId,
                                @NonNull byte[] bytes,
                                @NonNull UploadCallback callback) {
+        uploadFile(kind, chatId, bytes, "image/jpeg", "photo.jpg", callback);
+    }
+
+    private static void uploadFile(@NonNull String kind,
+                                   @Nullable String chatId,
+                                   @NonNull byte[] bytes,
+                                   @NonNull String mime,
+                                   @NonNull String fileName,
+                                   @NonNull UploadCallback callback) {
         String baseUrl = BuildConfig.MEDIA_WORKER_URL;
         if (TextUtils.isEmpty(baseUrl)) {
             callback.onError(new IOException("Media service is not configured."));
@@ -88,7 +104,8 @@ public final class MediaRepository {
                         : tokenTask.getException());
                 return;
             }
-            send(baseUrl, kind, chatId, tokenTask.getResult().getToken(), bytes, callback);
+            send(baseUrl, kind, chatId, tokenTask.getResult().getToken(), bytes,
+                    mime, fileName, callback);
         });
     }
 
@@ -97,11 +114,13 @@ public final class MediaRepository {
                              @Nullable String chatId,
                              @NonNull String token,
                              @NonNull byte[] bytes,
+                             @NonNull String mime,
+                             @NonNull String fileName,
                              @NonNull UploadCallback callback) {
         MultipartBody.Builder body = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("kind", kind)
-                .addFormDataPart("file", "photo.jpg", new JpegBody(bytes));
+                .addFormDataPart("file", fileName, new ByteBody(bytes, mime));
         if (chatId != null) {
             body.addFormDataPart("chatId", chatId);
         }
@@ -156,17 +175,20 @@ public final class MediaRepository {
         MAIN.post(() -> callback.onError(exception));
     }
 
-    private static final class JpegBody extends RequestBody {
+    private static final class ByteBody extends RequestBody {
         private final byte[] bytes;
+        private final MediaType type;
 
-        JpegBody(byte[] bytes) {
+        ByteBody(byte[] bytes, @NonNull String mime) {
             this.bytes = bytes;
+            MediaType parsed = MediaType.parse(mime);
+            this.type = parsed == null ? MediaType.parse("application/octet-stream") : parsed;
         }
 
         @Nullable
         @Override
         public MediaType contentType() {
-            return JPEG;
+            return type;
         }
 
         @Override

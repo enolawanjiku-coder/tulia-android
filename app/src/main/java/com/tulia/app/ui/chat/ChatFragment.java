@@ -1,10 +1,13 @@
 package com.tulia.app.ui.chat;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,12 +18,14 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
@@ -28,6 +33,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
@@ -45,6 +51,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.tulia.app.R;
 import com.tulia.app.data.ChatRepository;
+import com.tulia.app.data.PresenceRepository;
 import com.tulia.app.data.UserRepository;
 import com.tulia.app.data.model.Chat;
 import com.tulia.app.data.model.Message;
@@ -55,6 +62,7 @@ import com.tulia.app.util.ImageCompressor;
 import com.tulia.app.util.Initials;
 import com.tulia.app.util.TimeFormat;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -82,6 +90,8 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
     private static final int REACTION_ROWS = 2;
     private static final int REACTION_COLUMNS = 3;
     private static final long REACTION_TTL_MS = 10000L;
+    private static final long MIN_VOICE_MILLIS = 900L;
+    private static final float RECORD_SLIDE_CANCEL_DP = 120f;
 
     private static final int ACTION_REPLY = 0;
     private static final int ACTION_REACT = 1;
@@ -99,6 +109,8 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
 
     private final Handler typingHandler = new Handler(Looper.getMainLooper());
     private final Runnable typingIdleRunnable = this::clearTyping;
+    private final Handler recordingHandler = new Handler(Looper.getMainLooper());
+    private final Runnable recordingTickRunnable = this::updateRecordingTimer;
     private final Runnable typingRefreshRunnable = () -> {
         typingRefreshScheduled = false;
         renderHeaderStatus();
@@ -114,6 +126,9 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
     private LinearLayoutManager layoutManager;
     private ListenerRegistration chatRegistration;
     private ListenerRegistration messagesRegistration;
+    private PresenceRepository.PresenceHandle presenceHandle;
+    private boolean otherOnline;
+    private long otherLastSeen;
 
     private String chatId;
     private String uid;
@@ -128,9 +143,20 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
     private boolean typingRefreshScheduled;
     private boolean viewDestroyed;
     private long lastTypingWriteAt;
+    private boolean sendingVoice;
+    private boolean recording;
+    private boolean recordingCancelled;
+    private float recordingDownX;
+    private long recordingStartedAt;
+    @Nullable
+    private MediaRecorder recorder;
+    @Nullable
+    private File recordingFile;
     private String otherUsername = "";
     private String otherName = "";
     private String myName = "";
+    private Set<String> blockedUids = new HashSet<>();
+    private boolean otherBlocked;
     private long lastMarkedReadAt;
     private ExecutorService imageExecutor;
     private Snackbar photoProgress;
@@ -142,6 +168,16 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
             registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
                 if (uri != null) {
                     sendPhoto(uri);
+                }
+            });
+
+    private final ActivityResultLauncher<String> recordAudioPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (granted) {
+                    startRecording();
+                } else {
+                    Toast.makeText(requireContext(), R.string.record_permission_denied,
+                            Toast.LENGTH_SHORT).show();
                 }
             });
 
@@ -182,6 +218,7 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
         binding.username.setText("");
         binding.backButton.setOnClickListener(v ->
                 NavHostFragment.findNavController(this).navigateUp());
+        binding.chatMenuButton.setOnClickListener(v -> showChatMenu());
 
         adapter = new MessageAdapter(this);
         layoutManager = new LinearLayoutManager(requireContext());
@@ -195,6 +232,11 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
                 new PickVisualMediaRequest.Builder()
                         .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                         .build()));
+        binding.micButton.setOnTouchListener(micTouchListener);
+        binding.cancelRecordButton.setOnClickListener(v -> {
+            recordingCancelled = true;
+            stopRecording(false);
+        });
         binding.inputMessage.setOnEditorActionListener((v, actionId, event) -> {
             sendMessage();
             return false;
@@ -215,9 +257,123 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
         });
         imageExecutor = Executors.newSingleThreadExecutor();
 
+        updateSendMicVisibility();
         loadOtherProfile();
+        loadBlockedState();
         listenForChat();
         listenForMessages();
+        listenForPresence();
+    }
+
+    private void loadBlockedState() {
+        UserRepository.getBlockedUids(uid, new UserRepository.BlockedCallback() {
+            @Override
+            public void onResult(@NonNull List<String> blocked) {
+                blockedUids = new HashSet<>(blocked);
+                otherBlocked = blockedUids.contains(otherUid);
+            }
+
+            @Override
+            public void onError(@NonNull Exception exception) {
+                Log.w(TAG, "Could not load the block list.", exception);
+            }
+        });
+    }
+
+    private void showChatMenu() {
+        String name = displayName();
+        String[] items = new String[]{
+                getString(otherBlocked ? R.string.unblock_user : R.string.block_user, name),
+                getString(R.string.report_user, name)
+        };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(name)
+                .setItems(items, (dialog, which) -> {
+                    if (which == 0) {
+                        if (otherBlocked) {
+                            unblockOther();
+                        } else {
+                            confirmBlock(name);
+                        }
+                    } else {
+                        showReportDialog(name);
+                    }
+                })
+                .show();
+    }
+
+    private void confirmBlock(@NonNull String name) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(getString(R.string.block_confirm_title, name))
+                .setMessage(getString(R.string.block_confirm_body, name))
+                .setPositiveButton(R.string.block_action, (dialog, which) ->
+                        setOtherBlocked(true))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void unblockOther() {
+        setOtherBlocked(false);
+    }
+
+    private void setOtherBlocked(boolean blocked) {
+        UserRepository.setBlocked(uid, otherUid, blocked)
+                .addOnSuccessListener(unused -> {
+                    if (blocked) {
+                        blockedUids.add(otherUid);
+                    } else {
+                        blockedUids.remove(otherUid);
+                    }
+                    otherBlocked = blocked;
+                    String name = displayName();
+                    Toast.makeText(requireContext(), getString(
+                            blocked ? R.string.block_done_toast : R.string.unblock_done_toast,
+                            name), Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(exception -> {
+                    Log.w(TAG, "Could not update the block list.", exception);
+                    showError(R.string.block_report_failed);
+                });
+    }
+
+    private void showReportDialog(@NonNull String name) {
+        String[] reasons = new String[]{
+                getString(R.string.report_reason_spam),
+                getString(R.string.report_reason_harassment),
+                getString(R.string.report_reason_fake),
+                getString(R.string.report_reason_other)
+        };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(getString(R.string.report_title, name))
+                .setItems(reasons, (dialog, which) ->
+                        submitReport(reasons[which]))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void submitReport(@NonNull String reason) {
+        UserRepository.reportUser(uid, otherUid, reason, chatId,
+                new UserRepository.SimpleCallback() {
+                    @Override
+                    public void onDone() {
+                        Toast.makeText(requireContext(),
+                                R.string.report_sent_toast,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(@NonNull Exception exception) {
+                        Log.w(TAG, "Could not send the report.", exception);
+                        showError(R.string.block_report_failed);
+                    }
+                });
+    }
+
+    @NonNull
+    private String displayName() {
+        return otherName == null || otherName.trim().isEmpty()
+                ? getString(R.string.guest_name)
+                : otherName;
     }
 
     private void loadOtherProfile() {
@@ -288,6 +444,7 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
         if (binding == null || viewDestroyed || chatId == null || uid == null) {
             return;
         }
+        updateSendMicVisibility();
         if (text.trim().isEmpty()) {
             clearTyping();
             return;
@@ -313,25 +470,289 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
         }
     }
 
+    private void updateSendMicVisibility() {
+        if (binding == null) {
+            return;
+        }
+        boolean hasText = binding.inputMessage.getText() != null
+                && !binding.inputMessage.getText().toString().trim().isEmpty();
+        binding.sendButton.setVisibility(hasText ? View.VISIBLE : View.GONE);
+        binding.micButton.setVisibility(hasText ? View.GONE : View.VISIBLE);
+    }
+
+    private final View.OnTouchListener micTouchListener = (view, event) -> {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                recordingDownX = event.getRawX();
+                recordingCancelled = false;
+                if (hasRecordPermission()) {
+                    startRecording();
+                } else {
+                    recordAudioPermission.launch(Manifest.permission.RECORD_AUDIO);
+                }
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (recording && !recordingCancelled
+                        && event.getRawX() < recordingDownX
+                        - RECORD_SLIDE_CANCEL_DP
+                        * view.getResources().getDisplayMetrics().density) {
+                    recordingCancelled = true;
+                    if (binding != null) {
+                        binding.recordingHint.setText(R.string.record_release_cancel);
+                    }
+                }
+                return true;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (recording) {
+                    stopRecording(!recordingCancelled);
+                }
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    private boolean hasRecordPermission() {
+        return ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void startRecording() {
+        if (recording || binding == null || viewDestroyed) {
+            return;
+        }
+        try {
+            File dir = new File(requireContext().getCacheDir(), "voice");
+            if (!dir.exists() && !dir.mkdirs()) {
+                throw new IllegalStateException("Could not create the recording folder.");
+            }
+            recordingFile = new File(dir, "voice_" + System.currentTimeMillis() + ".m4a");
+            recorder = new MediaRecorder();
+            recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            recorder.setAudioEncodingBitRate(64000);
+            recorder.setAudioSamplingRate(44100);
+            recorder.setAudioChannels(1);
+            recorder.setOutputFile(recordingFile.getAbsolutePath());
+            recorder.prepare();
+            recorder.start();
+            recording = true;
+            recordingStartedAt = System.currentTimeMillis();
+            showRecordingUi(true);
+            updateRecordingTimer();
+        } catch (Exception exception) {
+            Log.w(TAG, "Could not start recording.", exception);
+            releaseRecorder();
+            recordingFile = null;
+            recording = false;
+            showRecordingUi(false);
+            Toast.makeText(requireContext(), R.string.record_failed,
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void stopRecording(boolean send) {
+        if (!recording) {
+            return;
+        }
+        recording = false;
+        recordingHandler.removeCallbacks(recordingTickRunnable);
+        long duration = System.currentTimeMillis() - recordingStartedAt;
+        boolean stopped = false;
+        MediaRecorder finished = recorder;
+        if (finished != null) {
+            try {
+                finished.stop();
+                stopped = true;
+            } catch (RuntimeException ignored) {
+                // Recording was too short to produce a file.
+            }
+        }
+        releaseRecorder();
+        showRecordingUi(false);
+        File file = recordingFile;
+        recordingFile = null;
+        if (send && stopped && duration >= MIN_VOICE_MILLIS && file != null && file.exists()) {
+            sendVoiceNote(file, duration);
+        } else {
+            deleteQuietly(file);
+            if (send) {
+                Toast.makeText(requireContext(), R.string.record_too_short,
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void releaseRecorder() {
+        if (recorder != null) {
+            try {
+                recorder.release();
+            } catch (RuntimeException ignored) {
+                // Already released by the system.
+            }
+            recorder = null;
+        }
+    }
+
+    private void showRecordingUi(boolean isRecording) {
+        if (binding == null) {
+            return;
+        }
+        binding.photoButton.setVisibility(isRecording ? View.GONE : View.VISIBLE);
+        binding.inputMessage.setVisibility(isRecording ? View.GONE : View.VISIBLE);
+        binding.recordingBar.setVisibility(isRecording ? View.VISIBLE : View.GONE);
+        if (isRecording) {
+            binding.recordingHint.setText(R.string.record_hint);
+            binding.recordingTimer.setText("0:00");
+        }
+        updateSendMicVisibility();
+    }
+
+    private void updateRecordingTimer() {
+        if (!recording || binding == null) {
+            return;
+        }
+        long seconds = Math.max(0L,
+                (System.currentTimeMillis() - recordingStartedAt) / 1000L);
+        binding.recordingTimer.setText(String.format(java.util.Locale.getDefault(),
+                "%d:%02d", seconds / 60, seconds % 60));
+        recordingHandler.postDelayed(recordingTickRunnable, 250L);
+    }
+
+    private void sendVoiceNote(@NonNull File file, long durationMillis) {
+        if (binding == null || sendingVoice || chatId == null || uid == null
+                || otherUid == null || imageExecutor == null) {
+            deleteQuietly(file);
+            return;
+        }
+        sendingVoice = true;
+        photoProgress = Snackbar.make(binding.getRoot(), R.string.voice_sending,
+                Snackbar.LENGTH_INDEFINITE);
+        photoProgress.show();
+
+        imageExecutor.execute(() -> {
+            final byte[] payload;
+            try {
+                payload = readAllBytes(file);
+            } catch (Exception exception) {
+                Log.w(TAG, "Could not read the recording.", exception);
+                deleteQuietly(file);
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(this::voiceSendFailed);
+                return;
+            }
+            deleteQuietly(file);
+            if (!isAdded()) {
+                return;
+            }
+            requireActivity().runOnUiThread(() -> {
+                ChatRepository.sendVoiceNote(chatId, uid, otherUid, payload, durationMillis,
+                        new ChatRepository.SendImageCallback() {
+                            @Override
+                            public void onSent() {
+                                finishVoiceSend();
+                            }
+
+                            @Override
+                            public void onError(@NonNull Exception exception) {
+                                Log.w(TAG, "Could not send the voice note.", exception);
+                                voiceSendFailed();
+                            }
+                        });
+            });
+        });
+    }
+
+    private void voiceSendFailed() {
+        finishVoiceSend();
+        if (binding != null) {
+            Snackbar.make(binding.getRoot(), R.string.voice_send_error,
+                    Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    private void finishVoiceSend() {
+        sendingVoice = false;
+        if (photoProgress != null) {
+            photoProgress.dismiss();
+            photoProgress = null;
+        }
+    }
+
+    @Nullable
+    private static byte[] readAllBytes(@NonNull File file) throws java.io.IOException {
+        byte[] bytes = new byte[(int) file.length()];
+        try (java.io.FileInputStream input = new java.io.FileInputStream(file)) {
+            int offset = 0;
+            while (offset < bytes.length) {
+                int read = input.read(bytes, offset, bytes.length - offset);
+                if (read < 0) {
+                    break;
+                }
+                offset += read;
+            }
+        }
+        return bytes;
+    }
+
+    private static void deleteQuietly(@Nullable File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            Log.w("ChatFragment", "Could not delete the temp recording.");
+        }
+    }
+
+    private void listenForPresence() {
+        if (otherUid == null) {
+            return;
+        }
+        presenceHandle = PresenceRepository.listen(otherUid, (online, lastSeen) -> {
+            if (binding == null) {
+                return;
+            }
+            otherOnline = online;
+            otherLastSeen = lastSeen;
+            renderHeaderStatus();
+        });
+    }
+
     private void renderHeaderStatus() {
         if (binding == null) {
             return;
         }
         boolean typing = chat != null && otherUid != null
                 && chat.isTyping(otherUid, System.currentTimeMillis(), TYPING_WINDOW_MS);
-        if (!typing) {
+        String status;
+        int color;
+        if (typing) {
+            status = getString(R.string.typing);
+            color = R.color.tulia_red;
+            if (!typingRefreshScheduled) {
+                typingRefreshScheduled = true;
+                typingHandler.postDelayed(typingRefreshRunnable, TYPING_WINDOW_MS);
+            }
+        } else {
             if (typingRefreshScheduled) {
                 typingHandler.removeCallbacks(typingRefreshRunnable);
                 typingRefreshScheduled = false;
             }
-            binding.username.setText(otherUsername);
-            return;
+            if (otherOnline) {
+                status = getString(R.string.status_online);
+                color = R.color.tulia_red;
+            } else if (otherLastSeen > 0L) {
+                status = getString(R.string.status_last_seen,
+                        TimeFormat.chatTime(requireContext(), otherLastSeen));
+                color = R.color.tulia_dust;
+            } else {
+                status = otherUsername;
+                color = R.color.tulia_dust;
+            }
         }
-        binding.username.setText(R.string.typing);
-        if (!typingRefreshScheduled) {
-            typingRefreshScheduled = true;
-            typingHandler.postDelayed(typingRefreshRunnable, TYPING_WINDOW_MS);
-        }
+        binding.username.setText(status);
+        binding.username.setTextColor(ContextCompat.getColor(requireContext(), color));
     }
 
     private void listenForMessages() {
@@ -411,22 +832,35 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
             boolean deleted = message.deleted;
 
             boolean hasImage = !message.imageUrl.isEmpty();
+            boolean hasAudio = message.hasAudio();
             if (sent) {
                 int tick = otherReadAt >= millis
                         ? MessageItem.TICK_READ
                         : MessageItem.TICK_SENT;
-                items.add(hasImage
-                        ? MessageItem.sentImage(message.id, message.imageUrl, time,
-                        lastInGroup, tick, quoteName, quoteText, edited, deleted,
-                        reactions)
-                        : MessageItem.sent(message.id, message.text, time, lastInGroup,
-                        tick, quoteName, quoteText, edited, deleted, reactions));
+                if (hasAudio) {
+                    items.add(MessageItem.sentAudio(message.id, message.audioUrl,
+                            message.durationMillis, time, lastInGroup, tick,
+                            quoteName, quoteText, edited, deleted, reactions));
+                } else {
+                    items.add(hasImage
+                            ? MessageItem.sentImage(message.id, message.imageUrl, time,
+                            lastInGroup, tick, quoteName, quoteText, edited, deleted,
+                            reactions)
+                            : MessageItem.sent(message.id, message.text, time, lastInGroup,
+                            tick, quoteName, quoteText, edited, deleted, reactions));
+                }
             } else {
-                items.add(hasImage
-                        ? MessageItem.receivedImage(message.id, message.imageUrl, time,
-                        lastInGroup, quoteName, quoteText, edited, deleted, reactions)
-                        : MessageItem.received(message.id, message.text, time, lastInGroup,
-                        quoteName, quoteText, edited, deleted, reactions));
+                if (hasAudio) {
+                    items.add(MessageItem.receivedAudio(message.id, message.audioUrl,
+                            message.durationMillis, time, lastInGroup,
+                            quoteName, quoteText, edited, deleted, reactions));
+                } else {
+                    items.add(hasImage
+                            ? MessageItem.receivedImage(message.id, message.imageUrl, time,
+                            lastInGroup, quoteName, quoteText, edited, deleted, reactions)
+                            : MessageItem.received(message.id, message.text, time,
+                            lastInGroup, quoteName, quoteText, edited, deleted, reactions));
+                }
             }
             previousMillis = millis;
         }
@@ -629,11 +1063,15 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
         if (reply == null) {
             return null;
         }
+        String previewText = reply.text;
+        if (previewText.trim().isEmpty() && reply.hasAudio()) {
+            previewText = getString(R.string.voice_message);
+        }
         Map<String, Object> replyTo = new HashMap<>();
         replyTo.put("messageId", reply.id);
         replyTo.put("senderId", reply.senderId);
         replyTo.put("senderName", displayNameFor(reply.senderId));
-        replyTo.put("text", reply.text);
+        replyTo.put("text", previewText);
         replyTo.put("imageUrl", reply.imageUrl);
         return replyTo;
     }
@@ -1090,6 +1528,13 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
     @Override
     public void onStop() {
         clearTyping();
+        if (recording) {
+            recordingCancelled = true;
+            stopRecording(false);
+        }
+        if (adapter != null) {
+            adapter.stopAudioPlayback();
+        }
         super.onStop();
     }
 
@@ -1099,11 +1544,20 @@ public class ChatFragment extends Fragment implements MessageAdapter.Listener {
         typingHandler.removeCallbacks(typingIdleRunnable);
         typingHandler.removeCallbacks(typingRefreshRunnable);
         typingRefreshScheduled = false;
+        recordingHandler.removeCallbacks(recordingTickRunnable);
+        if (recording) {
+            recordingCancelled = true;
+            stopRecording(false);
+        }
         reactionHandler.removeCallbacks(reactionRefreshRunnable);
         reactionCache.clear();
         reactionLoadedAt.clear();
         loadingReactions.clear();
         viewDestroyed = true;
+        if (presenceHandle != null) {
+            presenceHandle.remove();
+            presenceHandle = null;
+        }
         if (chatRegistration != null) {
             chatRegistration.remove();
             chatRegistration = null;

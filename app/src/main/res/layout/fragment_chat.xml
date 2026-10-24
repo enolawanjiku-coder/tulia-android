@@ -77,6 +77,15 @@
                 android:textAppearance="@style/TextAppearance.Tulia.Caption"
                 android:textColor="@color/tulia_dust" />
         </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/chat_menu_button"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/chat_options"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/tulia_ink" />
     </LinearLayout>
 
     <View
@@ -140,6 +149,66 @@
             android:textColor="@color/tulia_ink"
             android:textColorHint="@color/tulia_dust"
             android:textSize="16sp" />
+
+        <LinearLayout
+            android:id="@+id/recording_bar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:minHeight="44dp"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone">
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:background="@drawable/bg_record_dot"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/recording_timer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                android:textColor="@color/tulia_red" />
+
+            <TextView
+                android:id="@+id/recording_hint"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/record_hint"
+                android:textAppearance="@style/TextAppearance.Tulia.Caption"
+                android:textColor="@color/tulia_dust" />
+
+            <ImageButton
+                android:id="@+id/cancel_record_button"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cancel_record"
+                android:padding="10dp"
+                android:src="@drawable/ic_close"
+                app:tint="@color/tulia_dust" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/mic_button"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_send_circle"
+            android:contentDescription="@string/send_voice"
+            android:padding="12dp"
+            android:src="@drawable/ic_mic"
+            app:tint="@color/tulia_white" />
 
         <ImageButton
             android:id="@+id/send_button"

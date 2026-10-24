@@ -223,7 +223,8 @@ public final class ChatRepository {
         WriteBatch batch = database.batch();
         batch.set(messageRef, message);
         batch.update(chatRef, chat);
-        return batch.commit();
+        return batch.commit().addOnSuccessListener(unused ->
+                PushRepository.notifyMessageSent(chatId, "text", text));
     }
 
     public static void loadReactions(@NonNull String chatId,
@@ -340,10 +341,62 @@ public final class ChatRepository {
                         batch.update(chatRef, chat);
                         batch.commit().addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
+                                PushRepository.notifyMessageSent(chatId, "image", "");
                                 callback.onSent();
                             } else {
                                 callback.onError(task.getException() == null
                                         ? new IllegalStateException("Could not send the photo.")
+                                        : task.getException());
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(@NonNull Exception exception) {
+                        callback.onError(exception);
+                    }
+                });
+    }
+
+    public static void sendVoiceNote(@NonNull String chatId,
+                                     @NonNull String senderId,
+                                     @NonNull String recipientId,
+                                     @NonNull byte[] bytes,
+                                     long durationMillis,
+                                     @NonNull SendImageCallback callback) {
+        FirebaseFirestore database = FirebaseFirestore.getInstance();
+        DocumentReference chatRef = database.collection("chats").document(chatId);
+        DocumentReference messageRef = chatRef.collection("messages").document();
+
+        MediaRepository.uploadChatFile(chatId, bytes, "audio/mp4",
+                "voice_" + System.currentTimeMillis() + ".m4a",
+                new MediaRepository.UploadCallback() {
+                    @Override
+                    public void onUploaded(@NonNull String url) {
+                        Map<String, Object> message = new HashMap<>();
+                        message.put("senderId", senderId);
+                        message.put("text", "");
+                        message.put("audioUrl", url);
+                        message.put("duration", durationMillis);
+                        message.put("createdAt", Timestamp.now());
+
+                        Map<String, Object> chat = new HashMap<>();
+                        chat.put("lastMessage", "");
+                        chat.put("lastMessageType", "audio");
+                        chat.put("lastMessageSenderId", senderId);
+                        chat.put("lastMessageAt", Timestamp.now());
+                        chat.put("unread." + recipientId, FieldValue.increment(1));
+
+                        WriteBatch batch = database.batch();
+                        batch.set(messageRef, message);
+                        batch.update(chatRef, chat);
+                        batch.commit().addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                PushRepository.notifyMessageSent(chatId, "audio", "");
+                                callback.onSent();
+                            } else {
+                                callback.onError(task.getException() == null
+                                        ? new IllegalStateException("Could not send the voice note.")
                                         : task.getException());
                             }
                         });

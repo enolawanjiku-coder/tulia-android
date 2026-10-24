@@ -18,6 +18,9 @@ public final class Message {
     public final String text;
     @NonNull
     public final String imageUrl;
+    @NonNull
+    public final String audioUrl;
+    public final long durationMillis;
     @Nullable
     public final Timestamp createdAt;
     @Nullable
@@ -42,10 +45,25 @@ public final class Message {
                    @Nullable ReplyTo replyTo,
                    @Nullable Timestamp editedAt,
                    boolean deleted) {
+        this(id, senderId, text, imageUrl, "", 0L, createdAt, replyTo, editedAt, deleted);
+    }
+
+    public Message(@NonNull String id,
+                   @NonNull String senderId,
+                   @NonNull String text,
+                   @NonNull String imageUrl,
+                   @NonNull String audioUrl,
+                   long durationMillis,
+                   @Nullable Timestamp createdAt,
+                   @Nullable ReplyTo replyTo,
+                   @Nullable Timestamp editedAt,
+                   boolean deleted) {
         this.id = id;
         this.senderId = senderId;
         this.text = text;
         this.imageUrl = imageUrl;
+        this.audioUrl = audioUrl;
+        this.durationMillis = durationMillis;
         this.createdAt = createdAt;
         this.replyTo = replyTo;
         this.editedAt = editedAt;
@@ -57,11 +75,15 @@ public final class Message {
         String senderId = document.getString("senderId");
         String text = document.getString("text");
         String imageUrl = document.getString("imageUrl");
+        String audioUrl = document.getString("audioUrl");
+        Long duration = document.getLong("duration");
         return new Message(
                 document.getId(),
                 senderId == null ? "" : senderId,
                 text == null ? "" : text,
                 imageUrl == null ? "" : imageUrl,
+                audioUrl == null ? "" : audioUrl,
+                duration == null ? 0L : duration,
                 document.getTimestamp("createdAt"),
                 ReplyTo.from(document.get("replyTo")),
                 document.getTimestamp("editedAt"),
@@ -74,6 +96,10 @@ public final class Message {
 
     public boolean isEdited() {
         return editedAt != null;
+    }
+
+    public boolean hasAudio() {
+        return !audioUrl.trim().isEmpty();
     }
 
     public long createdMillis() {
